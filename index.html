@@ -135,10 +135,10 @@
             <span id="chord-name" class="chord-name" aria-live="polite"></span>
           </fieldset>
           <p class="hint">
-            Left-click a torus node to pick it · arrow keys move the timeline
-            cursor · <kbd>Enter</kbd> places the current dyad ·
-            <kbd>Backspace</kbd> clears · drag the right edge of a chord to
-            extend it.
+            Left-click a torus node to pick it · left-click a cell to place
+            · right-click a cell to remove · drag the right edge of a chord
+            to extend · click or drag the red line / beat-number row to
+            move the playhead.
           </p>
         </div>
       </section>
@@ -193,14 +193,24 @@
           <section>
             <h3>Timeline</h3>
             <ul>
-              <li>Three tracks, each with its own instrument and curve color.</li>
-              <li><b>Click a cell</b> to place the current dyad.</li>
-              <li><b>Click again</b> to clear it.</li>
+              <li>Three tracks, each with its own instrument and curve color. Cells take the track's color.</li>
+              <li><b>Left-click a cell</b> to place the current dyad.</li>
+              <li><b>Right-click a cell</b> to remove its chord.</li>
               <li><b>Arrows</b> move the cursor, <b>Enter</b> places, <b>Backspace</b> clears.</li>
               <li>
                 <b>Drag the right edge</b> of a placed chord to extend or
                 shrink its duration; it snaps to the grid and stops at the
                 next chord.
+              </li>
+              <li>
+                The <b>red line</b> is the playhead. <b>Click</b> or
+                <b>drag</b> the beat-number row at the top (or grab the
+                red knob itself) to move the playhead to any cell, paused
+                or playing — audio follows.
+              </li>
+              <li>
+                <b>Play</b> resumes from wherever the playhead sits;
+                <b>Stop</b> pauses and rewinds to the first cell.
               </li>
               <li>
                 Load familiar progressions from the <b>Preset</b> menu

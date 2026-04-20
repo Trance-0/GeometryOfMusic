@@ -60,6 +60,28 @@ for the canonical checklist. The items that need extra care in this repo:
 
 Append, do not rewrite.
 
+- 2026-04-20: **Round 8** — DAW-style edits + grabbable playhead.
+  - Cell click: left-click always places the current dyad;
+    right-click removes the chord covering the cell (contextmenu
+    preventDefault). New `TimelineCallbacks.onCellRemove`.
+    Keyboard Backspace still clears via the selection cursor.
+  - Playhead element now `pointer-events: auto` with a dedicated
+    drag knob (larger red `::before`) and an invisible widened
+    `::after` hit area. `installPlayheadDrag` + `startScrubDrag`
+    share the same onScrub flow as the header-ruler scrub. Matches
+    DAW conventions (grab the playhead anywhere).
+  - Playhead stays visible through pause, stop, and arbitrary
+    scrubs. Initial app load parks it at cell 0. `stop` split into
+    two operations: `pause()` (halt scheduler + audio, keep
+    position) and `fullStop()` (pause then rewind to cell 0).
+    Play button toggles play/pause; Stop button calls fullStop.
+  - Header ruler's cells got a subtle pink-tinted background and
+    `ew-resize` cursor so the scrub affordance is discoverable.
+    New `body.scrubbing` class keeps the resize cursor while the
+    drag is live.
+  - Docs: wrote `docs/versions/0.0.8.md`, appended versions index,
+    added to mkdocs nav, extended `docs/usage.md` mouse table,
+    ticked round-8 items in `docs/TODO.md`, appended this log.
 - 2026-04-20: **Round 7** — playhead correction + colors.
   - Playhead moved from the torus to the 2D timeline.
     `TorusView.setPlayhead` and its sphere pool / connecting line

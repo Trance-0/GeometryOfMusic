@@ -67,6 +67,21 @@ Inside the **timeline** (click it once to focus):
 | Enter, Space       | Place the current dyad at the selected cell.            |
 | Backspace, Delete  | Clear the selected cell.                                |
 
+Mouse on the timeline:
+
+| Gesture                | Action                                                |
+|------------------------|-------------------------------------------------------|
+| Left-click a cell      | Place the current dyad (overwrites any chord).        |
+| Right-click a cell     | Remove the chord covering that cell.                  |
+| Drag right edge        | Extend or shrink a chord; snaps to grid.              |
+| Click / drag the ruler | Move the playhead to that cell (the beat-number row). |
+| Drag the red knob      | Same — grab the playhead and slide it.                |
+
+The playhead is always on screen. **Play** resumes from wherever the
+red line sits; **Stop** pauses *and* rewinds the playhead to the
+first cell. Scrubbing while playing cancels the current step and
+restarts from the new cell so the audio jumps with the line.
+
 Outside the timeline (but not inside another input):
 
 | Key       | Action                       |

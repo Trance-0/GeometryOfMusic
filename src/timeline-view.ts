@@ -26,6 +26,7 @@ export interface Placement {
 
 export interface TimelineCallbacks {
   onCellClick(trackIndex: number, cellIndex: number, shift: boolean): void;
+  onCellRemove(trackIndex: number, cellIndex: number): void;
   onCellHover(trackIndex: number, cellIndex: number | null): void;
   onSelectionChange(trackIndex: number, cellIndex: number): void;
   onInstrumentChange(trackIndex: number, instrument: InstrumentId): void;
@@ -74,6 +75,7 @@ export class TimelineView {
     this.playhead = this.ensurePlayheadElement();
     this.installKeyboard();
     this.installScrub();
+    this.installPlayheadDrag();
     this.rebuild();
   }
 
@@ -278,51 +280,64 @@ export class TimelineView {
     );
   }
 
+  private cellAtClientX(clientX: number): number | null {
+    const cellsWrap = this.resolveCellsWrap();
+    if (!cellsWrap) return null;
+    const rect = cellsWrap.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const total = this.totalCells();
+    if (rect.width <= 0 || total <= 0) return null;
+    const cellWidth = rect.width / total;
+    return Math.max(0, Math.min(total - 1, Math.floor(x / cellWidth)));
+  }
+
+  private startScrubDrag(startClientX: number, pointerId: number): void {
+    document.body.classList.add("scrubbing");
+    const onMove = (ev: PointerEvent): void => {
+      if (ev.pointerId !== pointerId) return;
+      const cell = this.cellAtClientX(ev.clientX);
+      if (cell !== null) this.callbacks.onScrub(cell);
+    };
+    const onUp = (ev: PointerEvent): void => {
+      if (ev.pointerId !== pointerId) return;
+      document.body.classList.remove("scrubbing");
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onUp);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onUp);
+    const initial = this.cellAtClientX(startClientX);
+    if (initial !== null) this.callbacks.onScrub(initial);
+  }
+
   private installScrub(): void {
     // Event delegation so the handler survives `rebuild()` (which replaces
-    // the header row DOM).
-    let dragging = false;
-    let pointerId: number | null = null;
-
-    const cellAtClientX = (clientX: number): number | null => {
-      const cellsWrap = this.resolveCellsWrap();
-      if (!cellsWrap) return null;
-      const rect = cellsWrap.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const total = this.totalCells();
-      if (rect.width <= 0 || total <= 0) return null;
-      const cellWidth = rect.width / total;
-      return Math.max(
-        0,
-        Math.min(total - 1, Math.floor(x / cellWidth)),
-      );
-    };
-
+    // the header row DOM). Click or drag on the header row (beat numbers)
+    // moves the playhead to that cell and keeps updating during drag.
     this.root.addEventListener("pointerdown", (e) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
       const header = target.closest<HTMLElement>(".tl-row.tl-header");
       if (!header) return;
       e.preventDefault();
-      dragging = true;
-      pointerId = e.pointerId;
-      const cell = cellAtClientX(e.clientX);
-      if (cell !== null) this.callbacks.onScrub(cell);
+      this.startScrubDrag(e.clientX, e.pointerId);
     });
+  }
 
-    const onMove = (e: PointerEvent): void => {
-      if (!dragging || e.pointerId !== pointerId) return;
-      const cell = cellAtClientX(e.clientX);
-      if (cell !== null) this.callbacks.onScrub(cell);
-    };
-    const onUp = (e: PointerEvent): void => {
-      if (!dragging || e.pointerId !== pointerId) return;
-      dragging = false;
-      pointerId = null;
-    };
-    document.addEventListener("pointermove", onMove);
-    document.addEventListener("pointerup", onUp);
-    document.addEventListener("pointercancel", onUp);
+  /**
+   * The playhead itself is grabbable. Pointerdown anywhere on it starts
+   * the same drag that the header-ruler scrub uses, so the user can
+   * push the line from either the ruler or the line's own knob.
+   */
+  private installPlayheadDrag(): void {
+    this.playhead.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      this.startScrubDrag(e.clientX, e.pointerId);
+    });
   }
 
   setSelection(sel: Partial<Selection>): void {
@@ -642,6 +657,15 @@ export class TimelineView {
       if (this.dragState) return;
       this.setSelection({ track: trackIndex, cell: cellIndex });
       this.callbacks.onCellClick(trackIndex, cellIndex, ev.shiftKey);
+    });
+    cell.addEventListener("contextmenu", (ev) => {
+      // Right-click removes the placement covering this cell (and
+      // suppresses the browser context menu). Left-click always places,
+      // so removal has its own dedicated button.
+      ev.preventDefault();
+      if (this.dragState) return;
+      this.setSelection({ track: trackIndex, cell: cellIndex });
+      this.callbacks.onCellRemove(trackIndex, cellIndex);
     });
     cell.addEventListener("mouseenter", () => {
       this.callbacks.onCellHover(trackIndex, cellIndex);

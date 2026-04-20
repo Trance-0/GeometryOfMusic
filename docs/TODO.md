@@ -51,6 +51,12 @@ inside each group is rough priority.
       node now glows pink, not the interval-class color). — *round 7*
 - [x] Filled cells colored per track (row 1 gold, row 2 blue, row 3
       pink) via CSS custom property. — *round 7*
+- [x] Left-click places, right-click removes on timeline cells
+      (no more toggle-on-left-click confusion). — *round 8*
+- [x] Playhead is a first-class draggable control: grabbable knob,
+      widened hit area, survives pause / stop, parked at cell 0 on
+      load. — *round 8*
+- [x] Play = play/pause; Stop = pause + rewind to cell 0. — *round 8*
 - [ ] Undo / redo for timeline edits.
 - [ ] Transpose button (± semitone) that rotates the torus path, not just
       the underlying notes.

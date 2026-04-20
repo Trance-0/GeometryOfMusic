@@ -469,36 +469,61 @@ body[data-theme="light"] .legend {
   width: 2px;
   background: var(--danger);
   box-shadow: 0 0 8px rgba(255, 107, 122, 0.65);
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: ew-resize;
   z-index: 5;
   transform: translateX(0);
   will-change: transform;
   display: none;
+  touch-action: none;
 }
 
 .tl-playhead::before {
   content: "";
   position: absolute;
-  top: -4px;
-  left: -4px;
-  width: 10px;
-  height: 10px;
+  top: -6px;
+  left: -7px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--danger);
-  box-shadow: 0 0 8px rgba(255, 107, 122, 0.8);
+  box-shadow: 0 0 10px rgba(255, 107, 122, 0.85);
+  cursor: ew-resize;
+}
+
+.tl-playhead::after {
+  /* Invisible widened hit area so the 2px line is easy to grab. */
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -8px;
+  right: -8px;
+  cursor: ew-resize;
 }
 
 .tl-row.tl-header .tl-cells {
   cursor: ew-resize;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 107, 122, 0.04)
+  );
+  border-radius: 3px;
 }
 
 .tl-row.tl-header .tl-cells:hover {
   background: linear-gradient(
     to bottom,
     transparent,
-    rgba(255, 107, 122, 0.08)
+    rgba(255, 107, 122, 0.14)
   );
-  border-radius: 3px;
+}
+
+body.scrubbing,
+body.scrubbing * {
+  cursor: ew-resize !important;
+  user-select: none;
 }
 
 #timeline {

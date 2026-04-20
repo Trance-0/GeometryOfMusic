@@ -299,15 +299,15 @@ function main(): void {
   const timeline = new TimelineView(
     timelineHost,
     {
-      onCellClick(trackIndex, cellIndex, shift) {
+      onCellClick(trackIndex, cellIndex) {
+        // Left-click always places the current dyad; use right-click (or
+        // Backspace while focused) to remove an existing placement.
+        timeline.setChord(trackIndex, cellIndex, { ...state.currentDyad });
+      },
+      onCellRemove(trackIndex, cellIndex) {
         const owner = timeline.placementCovering(trackIndex, cellIndex);
         const anchor = owner ?? cellIndex;
-        const existing = owner !== null ? timeline.getChords(trackIndex)[owner] ?? null : null;
-        if (existing && !shift) {
-          timeline.setChord(trackIndex, anchor, null);
-        } else {
-          timeline.setChord(trackIndex, cellIndex, { ...state.currentDyad });
-        }
+        timeline.setChord(trackIndex, anchor, null);
       },
       onCellHover(trackIndex, cellIndex) {
         if (cellIndex === null) return;
@@ -410,25 +410,32 @@ function main(): void {
   const playBtn = requireEl<HTMLButtonElement>("play-btn");
   const stopBtn = requireEl<HTMLButtonElement>("stop-btn");
 
-  const stop = (): void => {
+  // "Pause" semantics: stop the audio and scheduler but leave the
+  // playhead where it is so the user can see, grab, and drag it.
+  const pause = (): void => {
     if (state.schedulerId !== null) {
       window.clearTimeout(state.schedulerId);
       state.schedulerId = null;
     }
     state.playing = false;
-    state.playheadIndex = null;
-    timeline.setPlayheadPosition(null, 0);
     synth.stopAll();
     torus.highlightDyad(state.currentDyad);
     playBtn.textContent = "Play";
     playBtn.classList.remove("playing");
   };
 
-  // Scrub = set playhead to an arbitrary cell (user drags across the
-  // timeline's header row). If paused, it just moves the visual cursor
-  // and the next Play starts there. If playing, it cancels the current
-  // timeout and restarts playback from the scrubbed cell so the audio
-  // jumps with the line.
+  // "Full stop" = pause, then rewind the playhead to the first cell.
+  const fullStop = (): void => {
+    pause();
+    state.playheadIndex = 0;
+    timeline.setPlayheadPosition(0, 0);
+  };
+
+  // Scrub = set playhead to an arbitrary cell (user drags the time axis
+  // or grabs the playhead knob itself). If paused, it moves the visual
+  // cursor and the next Play starts there. If playing, it cancels the
+  // current timeout and restarts playback from the scrubbed cell so the
+  // audio jumps with the line.
   const scrubTo = (cellIndex: number): void => {
     if (state.playing) {
       if (state.schedulerId !== null) {
@@ -485,7 +492,7 @@ function main(): void {
 
   playBtn.addEventListener("click", async () => {
     if (state.playing) {
-      stop();
+      pause();
       return;
     }
     if (!hasAnyChord(timeline)) {
@@ -496,11 +503,11 @@ function main(): void {
     state.playing = true;
     playBtn.textContent = "Pause";
     playBtn.classList.add("playing");
-    // Resume from where the playhead last was (scrub + pause puts it on a
-    // cell), or from cell 0 if the transport hasn't moved yet.
+    // Resume from where the playhead last was (scrub or pause leaves it
+    // on a cell), or from cell 0 if transport hasn't moved.
     playStep(state.playheadIndex ?? 0);
   });
-  stopBtn.addEventListener("click", stop);
+  stopBtn.addEventListener("click", fullStop);
 
   document.addEventListener("keydown", (e) => {
     const target = e.target as HTMLElement | null;
@@ -579,6 +586,11 @@ function main(): void {
     cellsPerBar: state.cellsPerBar,
     placements: [],
   });
+  // Park the playhead at cell 0 on initial load so the red line is
+  // visible and grabbable before the user presses Play for the first
+  // time. Subsequent Pause / Scrub calls leave it where it was.
+  state.playheadIndex = 0;
+  timeline.setPlayheadPosition(0, 0);
 
   installTour();
 }
