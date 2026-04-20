@@ -30,7 +30,7 @@ prefix — don't hard-code `/GeometryOfMusic/...` in markdown.
 
 ## Workflow
 
-[.github/workflows/deploy-docs.yml](../../.github/workflows/deploy-docs.yml)
+[.github/workflows/deploy-docs.yml](https://github.com/Trance-0/GeometryOfMusic/blob/main/.github/workflows/deploy-docs.yml)
 runs on:
 
 - every push to `main` that touches `docs/**`, `mkdocs.yml`, or the

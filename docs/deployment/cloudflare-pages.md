@@ -25,7 +25,7 @@ subpath gymnastics (the app is served at the project root, so
 ## Automatic deploys (recommended)
 
 Every push to `main` that touches app code runs
-[.github/workflows/deploy-app.yml](../../.github/workflows/deploy-app.yml):
+[.github/workflows/deploy-app.yml](https://github.com/Trance-0/GeometryOfMusic/blob/main/.github/workflows/deploy-app.yml):
 
 1. Install dependencies.
 2. `npm run typecheck`.

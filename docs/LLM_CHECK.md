@@ -1,7 +1,7 @@
 # LLM_CHECK — Geometry of Music
 
 End-of-round checklist. Canonical template source:
-[AGENTS.md/docs/LLM_CHECK.md](../AGENTS.md/docs/LLM_CHECK.md). This file is
+[AGENTS.md/docs/LLM_CHECK.md](https://github.com/Trance-0/AGENTS.md/blob/main/docs/LLM_CHECK.md). This file is
 the project-local copy; when in doubt, defer to the template.
 
 Project-specific notes live at the bottom in *Current round log*.
@@ -35,7 +35,8 @@ ones below come from the initial prototype round.
 
 ## 2. Round-end checklist
 
-Refer to [AGENTS.md/docs/LLM_CHECK.md §2](../AGENTS.md/docs/LLM_CHECK.md)
+Refer to
+[AGENTS.md/docs/LLM_CHECK.md §2](https://github.com/Trance-0/AGENTS.md/blob/main/docs/LLM_CHECK.md#2-round-end-checklist)
 for the canonical checklist. The items that need extra care in this repo:
 
 - [ ] `npm run typecheck` passes (strict TypeScript).
