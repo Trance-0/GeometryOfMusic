@@ -41,10 +41,18 @@ persisted per browser as `gom.upper.fraction` in `localStorage`.
    (voice A, voice B, octave), and a **dark / light theme toggle** on the
    right side of the first row.
 3. **Timeline view** (lower panel). Three tracks × (bars × cells-per-bar)
-   cells. Each track has its own instrument selector and mute toggle; the
-   grid supports click-to-place / click-to-clear with the mouse, and full
-   keyboard navigation (arrows move a selection cursor, Enter places the
-   current dyad, Backspace clears it).
+   cells. Each track has a colored swatch (matching the track's curve
+   color on the torus), an instrument selector, and a mute toggle.
+   Chords are stored as `Placement` objects (dyad + duration in cells);
+   the grid renders each placement as a single element that spans the
+   right number of columns, with a **drag-to-extend grip** on its right
+   edge. Click-to-place / click-to-clear works on any cell (clicking a
+   cell covered by a span edits the owning span). Full keyboard
+   navigation: arrows move the selection cursor, Enter places the
+   current dyad, Backspace clears. A first-row transport control
+   **Preset** drop-down loads starter progressions
+   (I-V-vi-IV, Pachelbel, 12-bar blues, ii-V-I) across all three
+   tracks with their natural chord durations.
 
 Audio is generated with the Web Audio API. `SynthEngine` maintains one
 `AudioContext`, three `GainNode` track buses, and four oscillator
@@ -82,12 +90,17 @@ src/
 ├── chord.ts            ← pitch classes, dyads, interval-class colors,
 │                         MIDI ↔ frequency helpers
 ├── navbar.ts           ← navbar registry of musical spaces
-├── torus-view.ts       ← three.js scene: torus shell, 144 nodes,
-│                         voice-leading edges, progression polyline,
+├── torus-view.ts       ← three.js scene: torus shell (low-poly,
+│                         theme-tinted), 144 nodes, voice-leading
+│                         edges, per-track Catmull-Rom curves,
 │                         left-click raycaster, reset-view camera snap
-├── timeline-view.ts    ← DOM grid for 3 tracks with keyboard nav
+├── timeline-view.ts    ← DOM grid for 3 tracks; Placement (dyad +
+│                         duration in cells), click / keyboard ops,
+│                         drag-to-extend span handle with grid snap
 ├── audio.ts            ← SynthEngine (Web Audio, per-track buses,
 │                         4 oscillator waveforms, envelope)
+├── presets.ts          ← starter progressions (I-V-vi-IV, Pachelbel,
+│                         12-bar blues, ii-V-I) voiced across 3 tracks
 ├── theme.ts            ← dark / light theme toggle + localStorage
 ├── tour.ts             ← first-visit welcome modal + ? button re-open
 └── resizer.ts          ← drag handle that splits upper vs lower panel

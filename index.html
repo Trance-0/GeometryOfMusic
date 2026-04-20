@@ -79,6 +79,10 @@
             Bars
             <input id="bars" type="number" min="1" max="16" value="4" />
           </label>
+          <label class="control">
+            Preset
+            <select id="preset-select" aria-label="Load starter progression"></select>
+          </label>
           <span class="transport-spacer"></span>
           <button id="theme-btn" type="button" class="theme-btn">Light theme</button>
         </div>
@@ -102,7 +106,8 @@
           <p class="hint">
             Left-click a torus node to pick it · arrow keys move the timeline
             cursor · <kbd>Enter</kbd> places the current dyad ·
-            <kbd>Backspace</kbd> clears.
+            <kbd>Backspace</kbd> clears · drag the right edge of a chord to
+            extend it.
           </p>
         </div>
       </section>
@@ -155,12 +160,19 @@
           <section>
             <h3>Timeline</h3>
             <ul>
-              <li>Three tracks, each with its own instrument.</li>
+              <li>Three tracks, each with its own instrument and curve color.</li>
               <li><b>Click a cell</b> to place the current dyad.</li>
               <li><b>Click again</b> to clear it.</li>
-              <li><b>Arrows</b> move the cursor, <b>Enter</b> places.</li>
-              <li><b>Backspace</b> clears the selected cell.</li>
-              <li>Change instrument or mute from each track's header.</li>
+              <li><b>Arrows</b> move the cursor, <b>Enter</b> places, <b>Backspace</b> clears.</li>
+              <li>
+                <b>Drag the right edge</b> of a placed chord to extend or
+                shrink its duration; it snaps to the grid and stops at the
+                next chord.
+              </li>
+              <li>
+                Load familiar progressions from the <b>Preset</b> menu
+                (I–V–vi–IV, Pachelbel, 12-bar blues, ii–V–I).
+              </li>
             </ul>
           </section>
           <section>

@@ -449,6 +449,15 @@ body[data-theme="light"] .legend {
   text-overflow: ellipsis;
 }
 
+.tl-track-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
 .tl-track-inst {
   background: var(--panel);
   color: var(--text);
@@ -534,6 +543,44 @@ body[data-theme="light"] .legend {
 .tl-cell.tl-cell-bar-start {
   color: var(--text);
   font-weight: 600;
+}
+
+.tl-cell.filled {
+  position: relative;
+  padding-right: 8px;
+}
+
+.tl-cell-grip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  border-radius: 0 3px 3px 0;
+  background: transparent;
+  transition: background 80ms ease;
+  touch-action: none;
+}
+
+.tl-cell.filled:hover .tl-cell-grip,
+.tl-cell-grip.dragging {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+body[data-theme="light"] .tl-cell.filled:hover .tl-cell-grip,
+body[data-theme="light"] .tl-cell-grip.dragging {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.legend-title {
+  color: var(--text);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.legend-title:first-child {
+  margin-top: 0;
 }
 
 #bottombar {

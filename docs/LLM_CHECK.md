@@ -59,6 +59,44 @@ for the canonical checklist. The items that need extra care in this repo:
 
 Append, do not rewrite.
 
+- 2026-04-20: **Round 3** — per-track curves, durations, starter
+  templates, wireframe cleanup.
+  - `TorusView.setProgressionPath` replaced with `setTrackPaths` that
+    takes one `{ color, dyads }` entry per track and draws a
+    Catmull-Rom (centripetal) curve in that color. Three tracks →
+    three curves (gold / sky blue / pink).
+  - Torus wireframe reduced from `TorusGeometry(R, r, 48, 96)` to
+    `(R, r, 8, 24)` and made theme-aware: `applySceneTheme` now also
+    retints the shell and the voice-leading edge lines. In light
+    theme the shell is a subtle grey at lower opacity; in dark theme
+    it is close to the earlier color. This addresses the complaint
+    that the light-theme wireframe looked too dense.
+  - `TrackRow.color` added; timeline track headers render a colored
+    swatch that matches the torus curve so the link is visible from
+    the lower panel.
+  - Timeline data model upgraded from per-cell `Dyad | null` to
+    per-cell `Placement | null` where `Placement = { dyad, duration
+    in cells }`. Each placement renders as one DOM element spanning
+    `duration` columns; empty cells render individually.
+  - Drag-to-extend grip on the right edge of every placed chord.
+    Pointer capture, pointer-per-cell math, grid snap, hard stop at
+    the next placement on the same track.
+  - Scheduler now multiplies per-cell step duration by
+    `placement.duration` so a held chord plays as one long note
+    instead of repeated attacks.
+  - `src/presets.ts` shipped with four starter progressions:
+    I–V–vi–IV (C), Pachelbel's Canon (D), 12-bar blues (C),
+    ii–V–I (C). Each chord is voiced across lead / bass / pad with
+    durations matching the original notation. A Preset dropdown in
+    the first transport row loads them (clears the timeline and
+    updates meter / bars / subdivision first).
+  - `docs/usage.md` rewritten to document curves, durations,
+    drag-to-extend, and the preset menu; `docs/readme.md` and
+    `docs/TODO.md` updated; this log entry appended.
+  - Verified: `npm run typecheck` clean; `npm run build` clean
+    (dist JS grew from ~497 KB to ~509 KB gzipped 132 KB — over the
+    500 KB Vite warning threshold; acceptable for a three.js app
+    and not worth splitting yet).
 - 2026-04-20: **Round 2** — addressed visible regressions and expanded the
   interaction surface.
   - Fixed the torus / node axis mismatch: the shell mesh no longer rotates

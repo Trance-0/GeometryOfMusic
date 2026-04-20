@@ -8,10 +8,15 @@ import {
   type PitchClass,
 } from "./chord.js";
 import { mountNavbar } from "./navbar.js";
+import { PRESETS, findPreset, type Preset } from "./presets.js";
 import { mountResizer } from "./resizer.js";
 import { applyTheme, getInitialTheme, mountThemeToggle } from "./theme.js";
-import { TimelineView, type TrackRow } from "./timeline-view.js";
-import { TorusView } from "./torus-view.js";
+import {
+  TimelineView,
+  type Placement,
+  type TrackRow,
+} from "./timeline-view.js";
+import { TorusView, type TrackPath } from "./torus-view.js";
 import { installTour, showTour } from "./tour.js";
 
 interface AppState {
@@ -26,10 +31,34 @@ interface AppState {
   schedulerId: number | null;
 }
 
+const TRACK_COLORS: readonly string[] = [
+  "#ffd166", // Lead — gold
+  "#4ea1ff", // Bass — sky blue
+  "#f78ae0", // Pad  — pink
+];
+
 const DEFAULT_TRACKS: TrackRow[] = [
-  { id: "lead", label: "Lead", instrument: "triangle", muted: false },
-  { id: "bass", label: "Bass", instrument: "sine", muted: false },
-  { id: "pad", label: "Pad", instrument: "sawtooth", muted: false },
+  {
+    id: "lead",
+    label: "Lead",
+    color: TRACK_COLORS[0] ?? "#ffd166",
+    instrument: "triangle",
+    muted: false,
+  },
+  {
+    id: "bass",
+    label: "Bass",
+    color: TRACK_COLORS[1] ?? "#4ea1ff",
+    instrument: "sine",
+    muted: false,
+  },
+  {
+    id: "pad",
+    label: "Pad",
+    color: TRACK_COLORS[2] ?? "#f78ae0",
+    instrument: "sawtooth",
+    muted: false,
+  },
 ];
 
 const state: AppState = {
@@ -85,16 +114,36 @@ function updateChordLabel(): void {
   el.textContent = `${dyadName(state.currentDyad)}  ·  ${INTERVAL_NAMES[ic] ?? ""}`;
 }
 
-function buildLegend(torus: TorusView): void {
+function buildLegend(torus: TorusView, tracks: readonly TrackRow[]): void {
   const legend = document.getElementById("lattice-legend");
   if (!legend) return;
   legend.textContent = "";
-  const title = document.createElement("div");
-  title.textContent = "Interval class";
-  title.style.gridColumn = "1 / -1";
-  title.style.color = "var(--text)";
-  title.style.fontWeight = "600";
-  legend.appendChild(title);
+
+  const tracksTitle = document.createElement("div");
+  tracksTitle.textContent = "Track curves";
+  tracksTitle.className = "legend-title";
+  tracksTitle.style.gridColumn = "1 / -1";
+  legend.appendChild(tracksTitle);
+  for (const track of tracks) {
+    const row = document.createElement("div");
+    row.style.gridColumn = "1 / -1";
+    const sw = document.createElement("span");
+    sw.className = "swatch";
+    sw.style.background = track.color;
+    row.appendChild(sw);
+    row.appendChild(
+      document.createTextNode(
+        `${track.label} — ${track.instrument}`,
+      ),
+    );
+    legend.appendChild(row);
+  }
+
+  const intervalsTitle = document.createElement("div");
+  intervalsTitle.textContent = "Interval class";
+  intervalsTitle.className = "legend-title";
+  intervalsTitle.style.gridColumn = "1 / -1";
+  legend.appendChild(intervalsTitle);
   const entries = torus.legendEntries();
   for (let i = 0; i < Math.min(12, entries.length); i++) {
     const entry = entries[i];
@@ -109,19 +158,23 @@ function buildLegend(torus: TorusView): void {
   }
 }
 
-function progressionPath(timeline: TimelineView): readonly Dyad[] {
-  const path: Dyad[] = [];
-  const total = timeline.totalCells();
-  for (let i = 0; i < total; i++) {
-    for (let t = 0; t < timeline.trackCount(); t++) {
-      const chord = timeline.getChords(t)[i];
-      if (chord) {
-        path.push(chord);
-        break;
-      }
-    }
+function placementsToDyads(placements: ReadonlyArray<Placement | null>): Dyad[] {
+  const out: Dyad[] = [];
+  for (const p of placements) if (p) out.push(p.dyad);
+  return out;
+}
+
+function trackPaths(timeline: TimelineView): readonly TrackPath[] {
+  const paths: TrackPath[] = [];
+  for (let t = 0; t < timeline.trackCount(); t++) {
+    const track = timeline.getTrack(t);
+    if (!track) continue;
+    paths.push({
+      color: track.color,
+      dyads: placementsToDyads(timeline.getChords(t)),
+    });
   }
-  return path;
+  return paths;
 }
 
 function hasAnyChord(timeline: TimelineView): boolean {
@@ -132,9 +185,15 @@ function hasAnyChord(timeline: TimelineView): boolean {
 }
 
 function cellsPerBeatFrom(subdivision: number): number {
-  // Subdivision values in the UI: 4 → quarter cells (1 per beat),
-  // 8 → eighth cells (2 per beat), 16 → sixteenth cells (4 per beat).
   return Math.max(1, Math.round(subdivision / 4));
+}
+
+function subdivisionFromCellsPerBar(
+  cellsPerBar: number,
+  beatsPerBar: number,
+): number {
+  const cellsPerBeat = Math.max(1, cellsPerBar / beatsPerBar);
+  return Math.round(cellsPerBeat * 4);
 }
 
 function main(): void {
@@ -148,6 +207,7 @@ function main(): void {
   const resetViewBtn = requireEl<HTMLButtonElement>("reset-view-btn");
   const themeBtn = requireEl<HTMLButtonElement>("theme-btn");
   const helpBtn = requireEl<HTMLButtonElement>("help-btn");
+  const presetSel = requireEl<HTMLSelectElement>("preset-select");
 
   mountNavbar(nav, (id) => {
     console.info(`[nav] selected space: ${id}`);
@@ -163,7 +223,7 @@ function main(): void {
     },
   });
   torus.highlightDyad(state.currentDyad);
-  buildLegend(torus);
+  buildLegend(torus, DEFAULT_TRACKS);
 
   resetViewBtn.addEventListener("click", () => torus.resetCamera());
 
@@ -187,25 +247,32 @@ function main(): void {
     DEFAULT_TRACKS.map((t) => t.instrument),
   );
 
+  const refreshPaths = (): void => {
+    torus.setTrackPaths(trackPaths(timeline));
+  };
+
   const timeline = new TimelineView(
     timelineHost,
     {
       onCellClick(trackIndex, cellIndex, shift) {
-        const current = timeline.getChords(trackIndex)[cellIndex];
-        if (current && !shift) {
-          timeline.setChord(trackIndex, cellIndex, null);
+        const owner = timeline.placementCovering(trackIndex, cellIndex);
+        const anchor = owner ?? cellIndex;
+        const existing = owner !== null ? timeline.getChords(trackIndex)[owner] ?? null : null;
+        if (existing && !shift) {
+          timeline.setChord(trackIndex, anchor, null);
         } else {
           timeline.setChord(trackIndex, cellIndex, { ...state.currentDyad });
         }
-        torus.setProgressionPath(progressionPath(timeline));
       },
       onCellHover(trackIndex, cellIndex) {
         if (cellIndex === null) return;
-        const chord = timeline.getChords(trackIndex)[cellIndex];
-        if (chord) torus.highlightDyad(chord);
+        const owner = timeline.placementCovering(trackIndex, cellIndex);
+        const idx = owner ?? cellIndex;
+        const placement = timeline.getChords(trackIndex)[idx];
+        if (placement) torus.highlightDyad(placement.dyad);
       },
       onSelectionChange() {
-        /* selection state lives in the timeline view; nothing else needs it */
+        /* no-op */
       },
       onInstrumentChange(trackIndex, instrument) {
         synth.setInstrument(trackIndex, instrument);
@@ -216,12 +283,13 @@ function main(): void {
       onPlacePressed() {
         const { track, cell } = timeline.getSelection();
         timeline.setChord(track, cell, { ...state.currentDyad });
-        torus.setProgressionPath(progressionPath(timeline));
       },
       onClearPressed() {
         const { track, cell } = timeline.getSelection();
         timeline.setChord(track, cell, null);
-        torus.setProgressionPath(progressionPath(timeline));
+      },
+      onPlacementChanged() {
+        refreshPaths();
       },
     },
     {
@@ -253,6 +321,7 @@ function main(): void {
   });
 
   const meterSel = requireEl<HTMLSelectElement>("meter");
+  const subSel = requireEl<HTMLSelectElement>("subdivision");
   meterSel.addEventListener("change", () => {
     state.meter = meterSel.value;
     const beats = meterBeats(state.meter);
@@ -264,16 +333,14 @@ function main(): void {
       beatsPerBar: beats,
       cellsPerBar: state.cellsPerBar,
     });
-    torus.setProgressionPath(progressionPath(timeline));
+    refreshPaths();
   });
-
-  const subSel = requireEl<HTMLSelectElement>("subdivision");
   subSel.addEventListener("change", () => {
     const sub = Number.parseInt(subSel.value, 10);
     const beats = meterBeats(state.meter);
     state.cellsPerBar = cellsPerBeatFrom(sub) * beats;
     timeline.configure({ cellsPerBar: state.cellsPerBar });
-    torus.setProgressionPath(progressionPath(timeline));
+    refreshPaths();
   });
 
   const barsInput = requireEl<HTMLInputElement>("bars");
@@ -282,7 +349,7 @@ function main(): void {
     state.bars = Math.max(1, Math.min(16, Number.isFinite(v) ? v : 4));
     barsInput.value = String(state.bars);
     timeline.configure({ bars: state.bars });
-    torus.setProgressionPath(progressionPath(timeline));
+    refreshPaths();
   });
 
   const octaveInput = requireEl<HTMLInputElement>("octave");
@@ -321,20 +388,18 @@ function main(): void {
     const idx = i % total;
     state.playheadIndex = idx;
     timeline.setActiveCell(idx);
-    const durationSec = stepMs() / 1000;
+    const oneStepSec = stepMs() / 1000;
     let lastPlayed: Dyad | null = null;
     for (let t = 0; t < timeline.trackCount(); t++) {
       if (synth.isMuted(t)) continue;
-      const chord = timeline.getChords(t)[idx];
-      if (!chord) continue;
-      synth.playDyad(t, chord, state.octave, durationSec);
-      lastPlayed = chord;
+      const placement = timeline.getChords(t)[idx];
+      if (!placement) continue;
+      const durationSec = placement.duration * oneStepSec;
+      synth.playDyad(t, placement.dyad, state.octave, durationSec);
+      lastPlayed = placement.dyad;
     }
     if (lastPlayed) torus.highlightDyad(lastPlayed);
-    state.schedulerId = window.setTimeout(
-      () => playStep(idx + 1),
-      stepMs(),
-    );
+    state.schedulerId = window.setTimeout(() => playStep(idx + 1), stepMs());
   };
 
   playBtn.addEventListener("click", async () => {
@@ -354,7 +419,6 @@ function main(): void {
   });
   stopBtn.addEventListener("click", stop);
 
-  // Transport-level keyboard: space / P outside the timeline triggers play.
   document.addEventListener("keydown", (e) => {
     const target = e.target as HTMLElement | null;
     const tag = target?.tagName ?? "";
@@ -367,28 +431,65 @@ function main(): void {
     }
   });
 
-  // Preset progressions so Play has something to do out of the box.
-  const lead: Dyad[] = [
-    { a: 0, b: 4 }, // C–E
-    { a: 5, b: 9 }, // F–A
-    { a: 7, b: 11 }, // G–B
-    { a: 0, b: 4 }, // C–E
-  ];
-  const bass: Dyad[] = [
-    { a: 0, b: 7 }, // C–G
-    { a: 5, b: 0 }, // F–C
-    { a: 7, b: 2 }, // G–D
-    { a: 0, b: 7 }, // C–G
-  ];
-  const cellsPerBar = state.cellsPerBar;
-  for (let i = 0; i < lead.length; i++) {
-    timeline.setChord(0, i * cellsPerBar, lead[i] ?? null);
-    timeline.setChord(1, i * cellsPerBar, bass[i] ?? null);
-  }
-  torus.setProgressionPath(progressionPath(timeline));
+  // -------- Presets ---------------------------------------------------------
+  const populatePresets = (): void => {
+    presetSel.textContent = "";
+    const blank = document.createElement("option");
+    blank.value = "";
+    blank.textContent = "— Starter templates —";
+    blank.disabled = true;
+    blank.selected = true;
+    presetSel.appendChild(blank);
+    for (const preset of PRESETS) {
+      const opt = document.createElement("option");
+      opt.value = preset.id;
+      opt.textContent = preset.name;
+      opt.title = preset.description;
+      presetSel.appendChild(opt);
+    }
+  };
+  populatePresets();
 
-  // Hook up the first-run tour after everything else is ready so the
-  // welcome modal shows over a fully rendered app.
+  const loadPreset = (preset: Preset): void => {
+    stop();
+    state.meter = preset.meter;
+    state.bars = preset.bars;
+    state.cellsPerBar = preset.cellsPerBar;
+    const beats = meterBeats(preset.meter);
+    meterSel.value = preset.meter;
+    barsInput.value = String(preset.bars);
+    subSel.value = String(subdivisionFromCellsPerBar(preset.cellsPerBar, beats));
+    timeline.clearAll();
+    timeline.configure({
+      bars: preset.bars,
+      cellsPerBar: preset.cellsPerBar,
+      beatsPerBar: beats,
+    });
+    for (const p of preset.placements) {
+      timeline.setChord(p.track, p.cell, p.dyad, p.duration);
+    }
+    refreshPaths();
+  };
+
+  presetSel.addEventListener("change", () => {
+    const preset = findPreset(presetSel.value);
+    if (!preset) return;
+    loadPreset(preset);
+    // Reset select back to placeholder so the same preset can be reloaded.
+    presetSel.value = "";
+  });
+
+  // -------- Initial content -------------------------------------------------
+  loadPreset(PRESETS[0] ?? {
+    id: "empty",
+    name: "Empty",
+    description: "",
+    meter: state.meter,
+    bars: state.bars,
+    cellsPerBar: state.cellsPerBar,
+    placements: [],
+  });
+
   installTour();
 }
 

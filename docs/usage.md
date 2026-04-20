@@ -65,24 +65,70 @@ Outside the timeline (but not inside another input):
 | Space, P  | Toggle Play / Pause.         |
 | Escape    | Close the welcome modal.     |
 
-## Three tracks, four instruments
+## Three tracks, four instruments, three curves
 
-The lower panel has three tracks. Each track has an instrument selector
-and a mute toggle in its header:
+The lower panel has three tracks. Each track has an instrument selector,
+a mute toggle, and a **colored swatch** that matches the curve drawn
+through its progression on the torus:
 
-| Default track | Default instrument |
-|---------------|--------------------|
-| Lead          | Triangle lead      |
-| Bass          | Sine bass          |
-| Pad           | Saw pad            |
+| Track | Curve color | Default instrument |
+|-------|-------------|--------------------|
+| Lead  | Gold        | Triangle lead      |
+| Bass  | Sky blue    | Sine bass          |
+| Pad   | Pink        | Saw pad            |
 
-Available instruments: **Triangle**, **Sine**, **Sawtooth**, **Square**. All
-are raw Web Audio oscillators with a short attack/release envelope; the
-point is tonal distinction, not fidelity. Mute a track to skip it during
-playback without losing its chord data.
+Available instruments: **Triangle**, **Sine**, **Sawtooth**, **Square**.
+All are raw Web Audio oscillators with a short attack/release envelope;
+the point is tonal distinction, not fidelity. Mute a track to skip it
+during playback without losing its chord data.
 
 Tracks play in parallel — one step of the scheduler triggers every
-un-muted track's dyad at that cell.
+un-muted track's chord that starts at that cell. Each track's placed
+chords are linked on the torus by a smooth (Catmull-Rom) curve in the
+track's color, so the three progressions appear as three distinct
+paths on the surface.
+
+## Chord durations — drag-to-extend
+
+Every placed chord occupies one or more **cells** (the smallest unit of
+the subdivision). The default is one cell. To hold a chord longer:
+
+1. Hover the chord. A subtle right-edge grip appears.
+2. **Drag the right edge** to the right (extend) or to the left
+   (shrink). The chord snaps to grid boundaries — integer numbers of
+   cells only.
+3. The drag **stops at the next chord** on that track. You can never
+   overwrite or overlap an existing chord by extending through it;
+   clear the neighbour first if you need the room.
+
+Holding a chord multiplies its audio duration by the cell count: a
+chord spanning 8 cells plays one long held note that lasts 8 ×
+(step duration) instead of eight separate attacks. This is what the
+preset templates use — each preset chord spans the exact number of
+cells of its original notation.
+
+## Starter templates
+
+The **Preset** menu in the first transport row drops familiar
+progressions into the timeline, properly voiced across the three
+tracks with appropriate chord durations:
+
+- **I–V–vi–IV (C major)** — the "axis of awesome" pop progression
+  behind *Let It Be*, *Don't Stop Believin'*, *With or Without You*,
+  and many, many others. Four bars, one chord per bar.
+- **Pachelbel's Canon (D major)** — the eight-chord ground bass
+  (D · A · Bm · F#m · G · D · G · A) compressed to four bars, one
+  chord every half note.
+- **12-bar blues (C)** — the canonical I-IV-V blues form with
+  dominant-seventh voicings on the IV and V chords and a V7
+  turnaround at the end.
+- **ii–V–I (C major)** — jazz turnaround Dm7 → G7 → Cmaj7 with the
+  resolution held over two bars.
+
+Each preset updates the meter, bar count, and subdivision to match its
+notation, clears the timeline first, and then writes the chord spans
+across all three tracks. You can edit any cell afterward or drag the
+durations to reshape the rhythm.
 
 ## Workflow
 

@@ -13,6 +13,12 @@ inside each group is rough priority.
 - [ ] Import a MIDI file and project its dyads onto the torus.
 - [x] Pick a chord directly from the torus (left-click a node → sets the
       current dyad). — *round 2*
+- [x] Drag the right edge of a placed chord to extend / shrink its
+      duration; stops at the next chord. — *round 3*
+- [x] Starter templates: I-V-vi-IV, Pachelbel, 12-bar blues, ii-V-I.
+      — *round 3*
+- [x] Three distinct curve colors on the torus, one per track, using
+      Catmull-Rom interpolation. — *round 3*
 - [ ] Undo / redo for timeline edits.
 - [ ] Transpose button (± semitone) that rotates the torus path, not just
       the underlying notes.
@@ -21,6 +27,10 @@ inside each group is rough priority.
 - [ ] Swing / groove templates rather than rigid grid playback.
 - [ ] Extra instrument voices — at least one inharmonic (FM bell /
       plucked-string Karplus-Strong) on top of the four basic waveforms.
+- [ ] More starter templates (Hallelujah, Autumn Leaves, minor blues,
+      tritone-sub turnaround, chromatic mediant walk).
+- [ ] Keyboard shortcut for drag-to-extend (`Shift + →` extends the
+      selected chord by one cell; `Shift + ←` shrinks it).
 
 ## Hook — *Exploring Musical Spaces*
 
