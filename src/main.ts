@@ -213,9 +213,31 @@ function main(): void {
   const themeBtn = requireEl<HTMLButtonElement>("theme-btn");
   const helpBtn = requireEl<HTMLButtonElement>("help-btn");
   const presetSel = requireEl<HTMLSelectElement>("preset-select");
+  const navToggle = requireEl<HTMLButtonElement>("nav-toggle");
+
+  const closeNav = (): void => {
+    nav.classList.remove("open");
+    navToggle.setAttribute("aria-expanded", "false");
+  };
+
+  navToggle.addEventListener("click", () => {
+    const open = nav.classList.toggle("open");
+    navToggle.setAttribute("aria-expanded", String(open));
+  });
+
+  // Close the mobile nav dropdown on outside click.
+  document.addEventListener("click", (e) => {
+    if (!nav.classList.contains("open")) return;
+    const target = e.target as Node | null;
+    if (!target) return;
+    if (nav.contains(target) || navToggle.contains(target)) return;
+    closeNav();
+  });
 
   mountNavbar(nav, (id) => {
     console.info(`[nav] selected space: ${id}`);
+    // Selecting a space on mobile should dismiss the dropdown.
+    closeNav();
   });
 
   const torus = new TorusView(canvasHost, {

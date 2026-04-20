@@ -15,13 +15,13 @@ corner.
 ┌────────────────────────────────────────────┐
 │ navbar · help button (?)                   │
 ├────────────────────────────────────────────┤
-│ [reset view]                               │
+│                [ reset view ][ hide torus ]│
+│                                   [legend] │
 │        3D torus lattice (upper panel)      │
 │        left click: pick node               │
-│        middle drag: rotate                 │
-│        right drag: pan                     │
+│        right drag: rotate                  │
+│        middle drag: pan                    │
 │        scroll: zoom                        │
-│                                   [legend] │
 ├════════════════════════════════════════════┤  ← drag to resize
 │ transport · theme toggle                   │
 │ current dyad · placement hints             │
@@ -40,14 +40,21 @@ to reset to the default split. Your chosen ratio is remembered per browser.
 | Gesture         | Action                                              |
 |-----------------|-----------------------------------------------------|
 | Left click      | Select the clicked node as the current dyad.        |
-| Middle drag     | Orbit the camera.                                   |
-| Right drag      | Pan the camera.                                     |
+| Right drag      | Orbit the camera.                                   |
+| Middle drag     | Pan the camera.                                     |
 | Scroll wheel    | Zoom (dolly).                                       |
 | Touch, 1 finger | Orbit.                                              |
 | Touch, 2 finger | Pan + pinch-zoom.                                   |
 
-The **Reset view** button in the upper-left corner of the 3D view returns
-the camera and orbit target to the starting framing.
+Right click is consumed by the orbit and does **not** open the browser
+context menu inside the 3D view. There is no translation (pan) on
+right-drag; pan lives on the middle mouse button.
+
+The **Reset view** button in the upper-right corner of the 3D view
+returns the camera and orbit target to the starting framing, and the
+**Hide torus** checkbox next to it hides the wireframe shell and unused
+nodes so only the chord curves and visited vertices remain. The
+interval-class legend sits just below the two controls.
 
 ## Keyboard shortcuts
 

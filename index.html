@@ -16,6 +16,28 @@
         <span class="brand-mark">GoM</span>
         <span class="brand-title">Geometry of Music</span>
       </div>
+      <button
+        id="nav-toggle"
+        class="nav-toggle"
+        type="button"
+        aria-label="Toggle musical-spaces menu"
+        aria-controls="space-nav"
+        aria-expanded="false"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
       <nav id="space-nav" aria-label="Musical spaces"></nav>
       <div class="topbar-actions">
         <button id="help-btn" type="button" title="Show tour">?</button>
@@ -25,25 +47,27 @@
     <main id="app">
       <section id="lattice-view" aria-label="3D chord lattice">
         <div id="lattice-canvas"></div>
-        <div class="lattice-overlay lattice-overlay-tl">
-          <button
-            id="reset-view-btn"
-            type="button"
-            class="icon-btn"
-            title="Reset camera to starting position"
-            aria-label="Reset camera to starting position"
-          >
-            Reset view
-          </button>
-          <label
-            class="overlay-toggle"
-            title="Hide the torus shell and unused nodes; show only the chord curves and visited nodes."
-          >
-            <input id="hide-torus-chk" type="checkbox" />
-            <span>Hide torus</span>
-          </label>
+        <div class="lattice-overlay lattice-overlay-tr">
+          <div class="lattice-controls">
+            <button
+              id="reset-view-btn"
+              type="button"
+              class="icon-btn"
+              title="Reset camera to starting position"
+              aria-label="Reset camera to starting position"
+            >
+              Reset view
+            </button>
+            <label
+              class="overlay-toggle"
+              title="Hide the torus shell and unused nodes; show only the chord curves and visited nodes."
+            >
+              <input id="hide-torus-chk" type="checkbox" />
+              <span>Hide torus</span>
+            </label>
+          </div>
+          <div class="legend" id="lattice-legend"></div>
         </div>
-        <div class="legend" id="lattice-legend"></div>
       </section>
 
       <div
@@ -156,11 +180,13 @@
             <h3>3D torus</h3>
             <ul>
               <li><b>Left click</b> a node to pick that dyad.</li>
-              <li><b>Middle drag</b> to rotate.</li>
-              <li><b>Right drag</b> to pan.</li>
+              <li><b>Right drag</b> to rotate.</li>
+              <li><b>Middle drag</b> to pan.</li>
               <li><b>Scroll</b> to zoom.</li>
               <li>
-                <b>Reset view</b> (top-left) returns the camera to start.
+                <b>Reset view</b> and <b>Hide torus</b> (top-right) control
+                the camera and the visible geometry; the interval-class
+                legend sits just below them.
               </li>
             </ul>
           </section>

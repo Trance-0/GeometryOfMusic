@@ -102,9 +102,12 @@ export class TorusView {
       MIDDLE: number;
       RIGHT: number;
     };
+    // Left click is consumed by the raycaster (node pick), not by orbit.
+    // Right drag rotates; middle drag pans; scroll zooms. This overrides the
+    // OrbitControls default (left = rotate, right = pan).
     mb.LEFT = -1;
-    mb.MIDDLE = THREE.MOUSE.ROTATE;
-    mb.RIGHT = THREE.MOUSE.PAN;
+    mb.MIDDLE = THREE.MOUSE.PAN;
+    mb.RIGHT = THREE.MOUSE.ROTATE;
     this.controls.touches.ONE = THREE.TOUCH.ROTATE;
     this.controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 

@@ -68,6 +68,38 @@ body {
   border-bottom: 1px solid var(--border);
   gap: 16px;
   flex-wrap: wrap;
+  position: relative;
+}
+
+.nav-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nav-toggle svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.nav-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.nav-toggle[aria-expanded="true"] {
+  background: var(--accent-dim);
+  color: white;
+  border-color: var(--accent);
 }
 
 .brand {
@@ -181,13 +213,22 @@ body[data-theme="light"] #space-nav button.active {
   z-index: 2;
 }
 
-.lattice-overlay-tl {
+.lattice-overlay-tr {
   top: 10px;
-  left: 10px;
+  right: 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  align-items: flex-start;
+  align-items: flex-end;
+  max-width: calc(100% - 20px);
+}
+
+.lattice-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: stretch;
+  flex-wrap: nowrap;
 }
 
 .overlay-toggle {
@@ -235,9 +276,6 @@ body[data-theme="light"] .icon-btn {
 }
 
 .legend {
-  position: absolute;
-  right: 10px;
-  top: 10px;
   background: rgba(18, 22, 29, 0.82);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -755,9 +793,87 @@ body.resizing-cell * {
     grid-template-columns: 1fr;
   }
   .tl-row {
-    grid-template-columns: 120px 1fr;
+    grid-template-columns: 132px 1fr;
   }
   .control input[type="range"] {
     width: 100px;
+  }
+}
+
+/*
+ * Mobile-friendly topbar. On narrow screens the space-nav collapses into a
+ * full-width dropdown under the topbar; a hamburger button toggles it.
+ * Brand / help button stay on the first row so the layout stays compact
+ * even before the dropdown opens.
+ */
+@media (max-width: 720px) {
+  #topbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .brand-title {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+    order: 1;
+    margin-left: auto;
+  }
+
+  .topbar-actions {
+    order: 2;
+  }
+
+  #space-nav {
+    order: 3;
+    flex-basis: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: none;
+    max-height: 60vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow);
+  }
+
+  #space-nav.open {
+    display: flex;
+  }
+
+  #space-nav button {
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .lattice-overlay-tr {
+    top: 6px;
+    right: 6px;
+    gap: 4px;
+  }
+
+  .lattice-controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .legend {
+    max-width: calc(100vw - 24px);
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  .tl-row {
+    grid-template-columns: 120px 1fr;
+  }
+
+  .tl-track-inst {
+    max-width: 64px;
   }
 }

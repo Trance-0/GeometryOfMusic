@@ -60,6 +60,28 @@ for the canonical checklist. The items that need extra care in this repo:
 
 Append, do not rewrite.
 
+- 2026-04-20: **Round 6** — layout pass.
+  - Hamburger nav on mobile. New `#nav-toggle` in the topbar, hidden
+    above 720 px. Under 720 px, `#space-nav` becomes a full-width
+    dropdown with `.open` toggled on click. Selecting a space or
+    clicking outside auto-closes. `.brand-title` is hidden under
+    720 px to reclaim space.
+  - OrbitControls button swap. `mouseButtons.RIGHT = ROTATE`,
+    `mouseButtons.MIDDLE = PAN`. Right-drag rotates like Blender;
+    middle-drag pans; left is still the raycaster; scroll still
+    zooms. The canvas already suppresses the browser context menu
+    (round 2), so right-drag rotation is unobstructed.
+  - Tour modal, transport hint, and `docs/usage.md` updated to
+    match the new mapping. Tour line about Reset view now points at
+    the top-right location.
+  - Reset view + Hide torus moved to the top-right of the 3D view.
+    The old `.lattice-overlay-tl` container was removed; a single
+    `.lattice-overlay-tr` now contains a `.lattice-controls` flex
+    row (button + checkbox on one row) and the legend stacked
+    directly under it. Absolute positioning on `.legend` stripped.
+  - Docs: wrote `docs/versions/0.0.6.md`, appended
+    `docs/versions/index.md`, added to `mkdocs.yml` nav, ticked
+    `docs/TODO.md`, appended this log.
 - 2026-04-20: **Round 5** — playback visibility + timeline edit
   robustness.
   - `TorusView.highlightDyads(dyads)` replaces the single-dyad

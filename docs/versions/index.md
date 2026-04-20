@@ -11,6 +11,7 @@ for humans.
 | [0.0.3](0.0.3.md) | 2026-04-20 | Per-track curves, chord durations + drag-to-extend, starter presets, wireframe cleanup. |
 | [0.0.4](0.0.4.md) | 2026-04-20 | Hide-torus toggle, docs reorg (experiments + versions). |
 | [0.0.5](0.0.5.md) | 2026-04-20 | Multi-dyad highlight, closed curves, red playhead indicator, track-colored nodes, preset dropdown persistence, drag-to-extend fix, mute-button fix and icon. |
+| [0.0.6](0.0.6.md) | 2026-04-20 | Mobile-friendly navbar hamburger, right-drag rotates and middle-drag pans, reset-view + hide-torus moved to top-right above the legend. |
 
 0.1.0 will cut the first tagged release once the roadmap items in
 [`TODO.md`](../TODO.md) labelled "pending version 0.1" are cleared.

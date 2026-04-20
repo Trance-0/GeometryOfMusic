@@ -35,6 +35,12 @@ inside each group is rough priority.
       chord data survives arbitrary drags. — *round 5*
 - [x] Fix mute/unmute closure bug; replace text with volume icon. —
       *round 5*
+- [x] Mobile-friendly topbar: collapse space-nav into a hamburger
+      dropdown under 720 px. — *round 6*
+- [x] Swap OrbitControls buttons: right-drag rotates, middle-drag
+      pans. — *round 6*
+- [x] Move Reset view + Hide torus to the top-right of the 3D view,
+      placed above the legend. — *round 6*
 - [ ] Undo / redo for timeline edits.
 - [ ] Transpose button (± semitone) that rotates the torus path, not just
       the underlying notes.
