@@ -1,0 +1,24 @@
+{
+  "name": "geometry-of-music",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Interactive 3D applets exploring the geometry of musical spaces.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "deploy:cf": "npm run build && wrangler pages deploy dist --project-name=geometry-of-music",
+    "docs:serve": "mkdocs serve",
+    "docs:build": "mkdocs build --strict --site-dir site"
+  },
+  "dependencies": {
+    "three": "^0.160.1"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.11"
+  }
+}

@@ -1,0 +1,58 @@
+name: deploy-app
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "vite.config.ts"
+      - ".github/workflows/deploy-app.yml"
+  workflow_dispatch:
+
+env:
+  CF_PROJECT_NAME: geometry-of-music
+  # Cloudflare Pages / Vercel serve at the root, so the app expects
+  # VITE_BASE=/. If you ever mirror the app onto GitHub Pages under
+  # /GeometryOfMusic/, override here.
+  VITE_BASE: /
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_BASE: ${{ env.VITE_BASE }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy dist
+            --project-name=${{ env.CF_PROJECT_NAME }}
+            --branch=${{ github.ref_name }}

@@ -1,0 +1,57 @@
+site_name: Geometry of Music
+site_description: >-
+  Interactive 3D applets for studying the geometry of chord space, voice
+  leading, and other structures in music theory.
+site_url: https://trance-0.github.io/GeometryOfMusic/
+repo_url: https://github.com/Trance-0/GeometryOfMusic
+repo_name: Trance-0/GeometryOfMusic
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to dark mode
+  features:
+    - navigation.instant
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.follow
+
+nav:
+  - Home: index.md
+  - How the project works: readme.md
+  - Usage: usage.md
+  - Deployment:
+      - Cloudflare Pages (app): deployment/cloudflare-pages.md
+      - Vercel (app): deployment/vercel.md
+      - GitHub Pages (docs site): deployment/github-pages-docs.md
+  - Roadmap: TODO.md
+  - Agent checklist: LLM_CHECK.md
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+strict: true

@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geometry of Music — Interactive Applets</title>
+    <meta
+      name="description"
+      content="Interactive 3D visualizations of chord space, voice leading, and other geometric structures in music theory."
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <header id="topbar">
+      <div class="brand">
+        <span class="brand-mark">GoM</span>
+        <span class="brand-title">Geometry of Music</span>
+      </div>
+      <nav id="space-nav" aria-label="Musical spaces"></nav>
+    </header>
+
+    <main id="app">
+      <section id="lattice-view" aria-label="3D chord lattice">
+        <div id="lattice-canvas"></div>
+        <div class="legend" id="lattice-legend"></div>
+      </section>
+
+      <section id="transport" aria-label="Playback controls">
+        <div class="transport-row">
+          <button id="play-btn" type="button" aria-label="Play">Play</button>
+          <button id="stop-btn" type="button" aria-label="Stop">Stop</button>
+          <label class="control">
+            BPM
+            <input id="bpm" type="range" min="40" max="220" value="100" />
+            <output id="bpm-out">100</output>
+          </label>
+          <label class="control">
+            Meter
+            <select id="meter">
+              <option value="3/4">3/4</option>
+              <option value="4/4" selected>4/4</option>
+              <option value="6/8">6/8</option>
+            </select>
+          </label>
+          <label class="control">
+            Subdivision
+            <select id="subdivision">
+              <option value="4">1/4</option>
+              <option value="8" selected>1/8</option>
+              <option value="16">1/16</option>
+            </select>
+          </label>
+          <label class="control">
+            Bars
+            <input id="bars" type="number" min="1" max="16" value="4" />
+          </label>
+        </div>
+        <div class="transport-row">
+          <fieldset class="chord-picker">
+            <legend>Current dyad</legend>
+            <label>
+              Voice A
+              <select id="note-a"></select>
+            </label>
+            <label>
+              Voice B
+              <select id="note-b"></select>
+            </label>
+            <label>
+              Octave
+              <input id="octave" type="number" min="2" max="6" value="4" />
+            </label>
+            <span id="chord-name" class="chord-name" aria-live="polite"></span>
+          </fieldset>
+          <p class="hint">
+            Click a timeline cell to place the current dyad. Click again to
+            clear. Hold Shift+click to extend the previous dyad across cells.
+          </p>
+        </div>
+      </section>
+
+      <section id="timeline-view" aria-label="Timeline">
+        <div id="timeline" role="grid" aria-label="Beat grid"></div>
+      </section>
+    </main>
+
+    <footer id="bottombar">
+      <span
+        >Prototype 0.0.1 &middot; Based on Hook, Tymoczko, and Schoenberg.
+        <a
+          href="https://github.com/Trance-0/GeometryOfMusic"
+          target="_blank"
+          rel="noopener"
+          >Source</a
+        >.</span
+      >
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
