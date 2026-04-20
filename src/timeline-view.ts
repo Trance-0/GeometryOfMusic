@@ -1,6 +1,9 @@
 import { dyadName, type Dyad } from "./chord.js";
 import { INSTRUMENTS, INSTRUMENT_IDS, type InstrumentId } from "./audio.js";
 
+const ICON_VOLUME = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+const ICON_VOLUME_MUTED = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+
 export interface TrackRow {
   id: string;
   label: string;
@@ -430,7 +433,12 @@ export class TimelineView {
       instSelect.addEventListener("change", () => {
         const next = instSelect.value as InstrumentId;
         if (!(next in INSTRUMENTS)) return;
-        this.settings.tracks[t] = { ...track, instrument: next };
+        // Read the live track record instead of the closure-captured `track`
+        // so a second change after a rebuild flips from the real current
+        // state, not from the stale one.
+        const cur = this.settings.tracks[t];
+        if (!cur) return;
+        this.settings.tracks[t] = { ...cur, instrument: next };
         this.callbacks.onInstrumentChange(t, next);
       });
       head.appendChild(instSelect);
@@ -438,13 +446,24 @@ export class TimelineView {
       const muteBtn = document.createElement("button");
       muteBtn.type = "button";
       muteBtn.className = "tl-track-mute";
-      muteBtn.textContent = track.muted ? "unmute" : "mute";
-      muteBtn.setAttribute("aria-pressed", String(track.muted));
-      muteBtn.addEventListener("click", () => {
-        const muted = !track.muted;
-        this.settings.tracks[t] = { ...track, muted };
-        muteBtn.textContent = muted ? "unmute" : "mute";
+      const renderMute = (muted: boolean): void => {
+        muteBtn.innerHTML = muted ? ICON_VOLUME_MUTED : ICON_VOLUME;
+        muteBtn.classList.toggle("is-muted", muted);
         muteBtn.setAttribute("aria-pressed", String(muted));
+        muteBtn.title = muted ? "Unmute track" : "Mute track";
+        muteBtn.setAttribute(
+          "aria-label",
+          muted ? "Unmute track" : "Mute track",
+        );
+      };
+      renderMute(track.muted);
+      muteBtn.addEventListener("click", () => {
+        // Same closure-freshness fix as the instrument select above.
+        const cur = this.settings.tracks[t];
+        if (!cur) return;
+        const muted = !cur.muted;
+        this.settings.tracks[t] = { ...cur, muted };
+        renderMute(muted);
         row.classList.toggle("muted", muted);
         this.callbacks.onMuteChange(t, muted);
       });
@@ -558,41 +577,47 @@ export class TimelineView {
         cellPx,
         pointerId: e.pointerId,
       };
-      grip.setPointerCapture(e.pointerId);
       grip.classList.add("dragging");
+      document.body.classList.add("resizing-cell");
+
+      // Listen on document rather than on the grip element itself, because
+      // rebuildTrack (called below on every accepted move) replaces the grip
+      // DOM element, which would otherwise drop pointer capture mid-drag
+      // and make the chord appear to get "stuck" or deleted.
+      const onMove = (ev: PointerEvent): void => {
+        const ds = this.dragState;
+        if (!ds) return;
+        if (ev.pointerId !== ds.pointerId) return;
+        const dx = ev.clientX - ds.pointerStartX;
+        const deltaCells = Math.round(dx / ds.cellPx);
+        const maxDur = this.maxDurationAt(ds.track, ds.startCell, true);
+        const next = Math.max(
+          1,
+          Math.min(maxDur, ds.startDuration + deltaCells),
+        );
+        const row = this.chords[ds.track];
+        if (!row) return;
+        const current = row[ds.startCell];
+        if (!current || current.duration === next) return;
+        row[ds.startCell] = { dyad: current.dyad, duration: next };
+        this.rebuildTrack(ds.track);
+        this.callbacks.onPlacementChanged();
+      };
+      const onUp = (ev: PointerEvent): void => {
+        const ds = this.dragState;
+        if (ds && ev.pointerId !== ds.pointerId) return;
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onUp);
+        document.body.classList.remove("resizing-cell");
+        this.dragState = null;
+        this.root
+          .querySelectorAll(".tl-cell-grip.dragging")
+          .forEach((el) => el.classList.remove("dragging"));
+      };
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+      document.addEventListener("pointercancel", onUp);
     });
-    grip.addEventListener("pointermove", (e) => {
-      if (!this.dragState) return;
-      const {
-        track,
-        startCell: sc,
-        startDuration,
-        pointerStartX,
-        cellPx,
-      } = this.dragState;
-      const dx = e.clientX - pointerStartX;
-      const deltaCells = Math.round(dx / cellPx);
-      const maxDur = this.maxDurationAt(track, sc, true);
-      const next = Math.max(1, Math.min(maxDur, startDuration + deltaCells));
-      const row = this.chords[track];
-      if (!row) return;
-      const current = row[sc];
-      if (!current || current.duration === next) return;
-      row[sc] = { dyad: current.dyad, duration: next };
-      this.rebuildTrack(track);
-      this.callbacks.onPlacementChanged();
-    });
-    const endDrag = (e: PointerEvent): void => {
-      if (!this.dragState) return;
-      try {
-        grip.releasePointerCapture(e.pointerId);
-      } catch {
-        /* already released */
-      }
-      grip.classList.remove("dragging");
-      this.dragState = null;
-    };
-    grip.addEventListener("pointerup", endDrag);
-    grip.addEventListener("pointercancel", endDrag);
   }
 }

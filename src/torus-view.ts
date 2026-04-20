@@ -27,9 +27,11 @@ function toroidalPosition(a: PitchClass, b: PitchClass): THREE.Vector3 {
 
 interface NodeEntry {
   readonly mesh: THREE.Mesh;
-  readonly baseColor: THREE.Color;
+  readonly baseColor: THREE.Color; // interval-class color, immutable
   readonly dyad: Dyad;
 }
+
+const PLAYHEAD_COLOR = 0xff3b3b;
 
 export interface TrackPath {
   readonly color: string | number;
@@ -55,8 +57,14 @@ export class TorusView {
   private pointer = new THREE.Vector2();
   private nodes = new Map<string, NodeEntry>();
   private nodeMeshes: THREE.Mesh[] = [];
-  private highlightedKey: string | null = null;
+  private highlightedKeys = new Set<string>();
   private trackLines: TrackLine[] = [];
+  private trackColorMap = new Map<string, THREE.Color>();
+  private playheadMarkers: THREE.Mesh[] = [];
+  private playheadLine: THREE.Line | null = null;
+  private playheadMarkerGeom: THREE.SphereGeometry | null = null;
+  private playheadMarkerMat: THREE.MeshBasicMaterial | null = null;
+  private playheadLineMat: THREE.LineBasicMaterial | null = null;
   private resizeObserver: ResizeObserver;
   private animationId: number | null = null;
   private callbacks: TorusViewCallbacks;
@@ -242,40 +250,50 @@ export class TorusView {
     }
   }
 
+  /** Highlight a single dyad — convenience wrapper around `highlightDyads`. */
   highlightDyad(dyad: Dyad | null): void {
-    if (this.highlightedKey) {
-      const prev = this.nodes.get(this.highlightedKey);
-      if (prev) {
-        const mat = prev.mesh.material as THREE.MeshStandardMaterial;
-        mat.emissive.copy(prev.baseColor).multiplyScalar(0.14);
-        prev.mesh.scale.setScalar(1);
-      }
+    this.highlightDyads(dyad === null ? [] : [dyad]);
+  }
+
+  /**
+   * Highlight zero or more dyads simultaneously. Every previously highlighted
+   * node that is not in the new set is un-highlighted. Used during playback
+   * so every currently-sounding track lights up its own node.
+   */
+  highlightDyads(dyads: readonly Dyad[]): void {
+    const next = new Set<string>();
+    for (const d of dyads) next.add(dyadKey(d));
+    for (const key of this.highlightedKeys) {
+      if (next.has(key)) continue;
+      const entry = this.nodes.get(key);
+      if (!entry) continue;
+      const mat = entry.mesh.material as THREE.MeshStandardMaterial;
+      mat.emissive.copy(entry.baseColor).multiplyScalar(0.14);
+      entry.mesh.scale.setScalar(1);
     }
-    if (dyad === null) {
-      this.highlightedKey = null;
-      this.applyNodeVisibility();
-      return;
+    for (const key of next) {
+      if (this.highlightedKeys.has(key)) continue;
+      const entry = this.nodes.get(key);
+      if (!entry) continue;
+      const mat = entry.mesh.material as THREE.MeshStandardMaterial;
+      mat.emissive.copy(entry.baseColor).multiplyScalar(1.4);
+      entry.mesh.scale.setScalar(1.7);
     }
-    const key = dyadKey(dyad);
-    const entry = this.nodes.get(key);
-    if (!entry) {
-      this.highlightedKey = null;
-      this.applyNodeVisibility();
-      return;
-    }
-    const mat = entry.mesh.material as THREE.MeshStandardMaterial;
-    mat.emissive.copy(entry.baseColor).multiplyScalar(1.4);
-    entry.mesh.scale.setScalar(1.7);
-    this.highlightedKey = key;
+    this.highlightedKeys = next;
     this.applyNodeVisibility();
   }
 
   /**
-   * Replace all per-track curves. Each track renders as a smooth
-   * Catmull-Rom curve through its placed dyads, in its own color. Tracks
-   * with fewer than two dyads render as nothing (a curve needs at least
-   * two anchors). Also updates the set of "used" dyad keys, which drives
-   * node visibility when minimal mode hides the rest of the lattice.
+   * Replace all per-track curves. Each track renders as a **closed**
+   * Catmull-Rom (centripetal) curve through its placed dyads in its own
+   * color — the progression loops head-to-tail, which matches the
+   * looping playback in the scheduler. Tracks with fewer than two dyads
+   * render as nothing. Also:
+   *   - rebuilds the "used dyad keys" set that drives node visibility
+   *     in minimal mode;
+   *   - tints every node on a track's curve with that track's color
+   *     (first track wins on a shared node). Unused nodes revert to
+   *     their interval-class color.
    */
   setTrackPaths(paths: readonly TrackPath[]): void {
     for (const tl of this.trackLines) {
@@ -285,25 +303,116 @@ export class TorusView {
     }
     this.trackLines = [];
     this.usedDyadKeys.clear();
+    this.trackColorMap.clear();
     for (const path of paths) {
-      for (const d of path.dyads) this.usedDyadKeys.add(dyadKey(d));
+      const color = new THREE.Color(path.color as THREE.ColorRepresentation);
+      for (const d of path.dyads) {
+        const key = dyadKey(d);
+        this.usedDyadKeys.add(key);
+        // First-listed track wins on a shared node (Lead over Bass over Pad).
+        if (!this.trackColorMap.has(key)) {
+          this.trackColorMap.set(key, color);
+        }
+      }
       if (path.dyads.length < 2) continue;
       const pts = path.dyads.map((d) => toroidalPosition(d.a, d.b));
-      const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
-      const sampleCount = Math.max(32, path.dyads.length * 24);
+      const curve = new THREE.CatmullRomCurve3(pts, true, "centripetal");
+      const sampleCount = Math.max(48, path.dyads.length * 24);
       const samples = curve.getPoints(sampleCount);
       const geom = new THREE.BufferGeometry().setFromPoints(samples);
       const material = new THREE.LineBasicMaterial({
-        color: new THREE.Color(path.color as THREE.ColorRepresentation),
+        color,
         transparent: true,
         opacity: 0.92,
       });
       const line = new THREE.Line(geom, material);
-      line.renderOrder = 2; // draw curves on top of the grid edges
+      line.renderOrder = 2;
       this.scene.add(line);
       this.trackLines.push({ line, material });
     }
+    this.applyTrackNodeColors();
     this.applyNodeVisibility();
+  }
+
+  private applyTrackNodeColors(): void {
+    for (const [key, entry] of this.nodes) {
+      const mat = entry.mesh.material as THREE.MeshStandardMaterial;
+      const tc = this.trackColorMap.get(key);
+      if (tc) {
+        mat.color.copy(tc);
+      } else {
+        mat.color.copy(entry.baseColor);
+      }
+    }
+  }
+
+  /**
+   * Red progress indicator shown during playback. Each currently-sounding
+   * dyad gets a small bright sphere, and if two or more tracks sound at
+   * the same step they are connected by a red line (a triangle if all
+   * three tracks are active). Pass an empty array to hide the indicator.
+   */
+  setPlayhead(dyads: readonly Dyad[]): void {
+    // Ensure marker pool exists.
+    if (!this.playheadMarkerGeom) {
+      this.playheadMarkerGeom = new THREE.SphereGeometry(
+        NODE_RADIUS * 1.55,
+        14,
+        14,
+      );
+    }
+    if (!this.playheadMarkerMat) {
+      this.playheadMarkerMat = new THREE.MeshBasicMaterial({
+        color: PLAYHEAD_COLOR,
+        transparent: true,
+        opacity: 0.95,
+      });
+    }
+    while (this.playheadMarkers.length < dyads.length) {
+      const m = new THREE.Mesh(
+        this.playheadMarkerGeom,
+        this.playheadMarkerMat,
+      );
+      m.renderOrder = 5;
+      this.scene.add(m);
+      this.playheadMarkers.push(m);
+    }
+    for (let i = 0; i < this.playheadMarkers.length; i++) {
+      const m = this.playheadMarkers[i];
+      if (!m) continue;
+      const d = dyads[i];
+      if (d) {
+        m.visible = true;
+        m.position.copy(toroidalPosition(d.a, d.b));
+      } else {
+        m.visible = false;
+      }
+    }
+    // Red connecting line through the currently-sounding dyads.
+    if (this.playheadLine) {
+      this.scene.remove(this.playheadLine);
+      this.playheadLine.geometry.dispose();
+      this.playheadLine = null;
+    }
+    if (dyads.length >= 2) {
+      const pts = dyads.map((d) => toroidalPosition(d.a, d.b));
+      if (dyads.length >= 3) {
+        const first = pts[0];
+        if (first) pts.push(first.clone());
+      }
+      const geom = new THREE.BufferGeometry().setFromPoints(pts);
+      if (!this.playheadLineMat) {
+        this.playheadLineMat = new THREE.LineBasicMaterial({
+          color: PLAYHEAD_COLOR,
+          transparent: true,
+          opacity: 0.9,
+        });
+      }
+      const line = new THREE.Line(geom, this.playheadLineMat);
+      line.renderOrder = 4;
+      this.scene.add(line);
+      this.playheadLine = line;
+    }
   }
 
   /**
@@ -325,7 +434,7 @@ export class TorusView {
     }
     for (const [key, entry] of this.nodes) {
       entry.mesh.visible =
-        this.usedDyadKeys.has(key) || key === this.highlightedKey;
+        this.usedDyadKeys.has(key) || this.highlightedKeys.has(key);
     }
   }
 
@@ -411,6 +520,13 @@ export class TorusView {
       tl.line.geometry.dispose();
       tl.material.dispose();
     }
+    if (this.playheadLine) {
+      this.playheadLine.geometry.dispose();
+      this.playheadLine = null;
+    }
+    this.playheadMarkerGeom?.dispose();
+    this.playheadMarkerMat?.dispose();
+    this.playheadLineMat?.dispose();
     if (this.renderer.domElement.parentNode === this.container) {
       this.container.removeChild(this.renderer.domElement);
     }

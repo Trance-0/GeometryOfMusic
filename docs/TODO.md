@@ -21,6 +21,20 @@ inside each group is rough priority.
       — *round 3*
 - [x] Three distinct curve colors on the torus, one per track, using
       Catmull-Rom interpolation. — *round 3*
+- [x] Highlight every currently-sounding dyad (not just one) during
+      playback. — *round 5*
+- [x] Close each track's curve head-to-tail (loop playback matches
+      loop visualization). — *round 5*
+- [x] Red progress indicator (marker + connecting line across tracks)
+      during playback. — *round 5*
+- [x] Color each node with its track's color on its trajectory (first
+      track wins on shared nodes). — *round 5*
+- [x] Preset dropdown shows the loaded preset's name until the user
+      edits; reverts to placeholder on edit. — *round 5*
+- [x] Fix drag-to-extend so rebuilds don't drop pointer capture and
+      chord data survives arbitrary drags. — *round 5*
+- [x] Fix mute/unmute closure bug; replace text with volume icon. —
+      *round 5*
 - [ ] Undo / redo for timeline edits.
 - [ ] Transpose button (± semitone) that rotates the torus path, not just
       the underlying notes.

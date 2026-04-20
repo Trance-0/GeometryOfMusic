@@ -29,6 +29,8 @@ interface AppState {
   playing: boolean;
   playheadIndex: number | null;
   schedulerId: number | null;
+  currentPresetId: string | null;
+  loadingPreset: boolean;
 }
 
 const TRACK_COLORS: readonly string[] = [
@@ -71,6 +73,8 @@ const state: AppState = {
   playing: false,
   playheadIndex: null,
   schedulerId: null,
+  currentPresetId: null,
+  loadingPreset: false,
 };
 
 function meterBeats(meter: string): number {
@@ -257,8 +261,17 @@ function main(): void {
     DEFAULT_TRACKS.map((t) => t.instrument),
   );
 
+  const markCustom = (): void => {
+    if (state.loadingPreset) return;
+    if (state.currentPresetId !== null) {
+      state.currentPresetId = null;
+      presetSel.value = "";
+    }
+  };
+
   const refreshPaths = (): void => {
     torus.setTrackPaths(trackPaths(timeline));
+    markCustom();
   };
 
   const timeline = new TimelineView(
@@ -381,6 +394,8 @@ function main(): void {
     state.playheadIndex = null;
     timeline.setActiveCell(null);
     synth.stopAll();
+    torus.setPlayhead([]);
+    torus.highlightDyad(state.currentDyad);
     playBtn.textContent = "Play";
     playBtn.classList.remove("playing");
   };
@@ -399,16 +414,27 @@ function main(): void {
     state.playheadIndex = idx;
     timeline.setActiveCell(idx);
     const oneStepSec = stepMs() / 1000;
-    let lastPlayed: Dyad | null = null;
+    // Trigger audio only for placements that START at this cell — held
+    // chords from earlier cells are already sounding.
     for (let t = 0; t < timeline.trackCount(); t++) {
       if (synth.isMuted(t)) continue;
       const placement = timeline.getChords(t)[idx];
       if (!placement) continue;
       const durationSec = placement.duration * oneStepSec;
       synth.playDyad(t, placement.dyad, state.octave, durationSec);
-      lastPlayed = placement.dyad;
     }
-    if (lastPlayed) torus.highlightDyad(lastPlayed);
+    // Build the list of dyads actually sounding right now — includes any
+    // placement whose span covers idx, not just those starting at idx.
+    // Used for both the emissive highlight and the red playhead indicator.
+    const active: Dyad[] = [];
+    for (let t = 0; t < timeline.trackCount(); t++) {
+      const owner = timeline.placementCovering(t, idx);
+      if (owner === null) continue;
+      const p = timeline.getChords(t)[owner];
+      if (p) active.push(p.dyad);
+    }
+    torus.highlightDyads(active);
+    torus.setPlayhead(active);
     state.schedulerId = window.setTimeout(() => playStep(idx + 1), stepMs());
   };
 
@@ -462,6 +488,7 @@ function main(): void {
 
   const loadPreset = (preset: Preset): void => {
     stop();
+    state.loadingPreset = true;
     state.meter = preset.meter;
     state.bars = preset.bars;
     state.cellsPerBar = preset.cellsPerBar;
@@ -478,15 +505,21 @@ function main(): void {
     for (const p of preset.placements) {
       timeline.setChord(p.track, p.cell, p.dyad, p.duration);
     }
-    refreshPaths();
+    state.loadingPreset = false;
+    state.currentPresetId = preset.id;
+    presetSel.value = preset.id;
+    // Re-run refresh so the torus paths reflect the new placements; the
+    // markCustom guard inside refreshPaths is a no-op while loadingPreset
+    // was true, so we need this trailing call to actually paint.
+    torus.setTrackPaths(trackPaths(timeline));
   };
 
   presetSel.addEventListener("change", () => {
     const preset = findPreset(presetSel.value);
     if (!preset) return;
     loadPreset(preset);
-    // Reset select back to placeholder so the same preset can be reloaded.
-    presetSel.value = "";
+    // Do NOT reset the select to "" — it should display the loaded
+    // preset's name until the user edits something.
   });
 
   // -------- Initial content -------------------------------------------------

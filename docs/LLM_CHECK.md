@@ -60,6 +60,44 @@ for the canonical checklist. The items that need extra care in this repo:
 
 Append, do not rewrite.
 
+- 2026-04-20: **Round 5** — playback visibility + timeline edit
+  robustness.
+  - `TorusView.highlightDyads(dyads)` replaces the single-dyad
+    highlight during playback so every sounding track lights up its
+    node. `playStep` now collects placements whose span covers the
+    current cell, not just those starting at it, so held chords stay
+    glowing for their whole duration.
+  - `CatmullRomCurve3(pts, true, "centripetal")`: each track's
+    progression is now a closed loop head-to-tail, matching the
+    looping playback.
+  - New `TorusView.setPlayhead(dyads)` renders a red marker at each
+    currently-sounding dyad plus a red line connecting them when
+    two+ tracks are active. Cleared on stop.
+  - Nodes on a track's curve take the track's color; first-listed
+    track wins on shared nodes. Unused nodes revert to interval-class
+    color.
+  - `state.currentPresetId` + `state.loadingPreset` flags added.
+    The preset dropdown now keeps the loaded preset's name until the
+    user edits anything, at which point `refreshPaths` clears it
+    back to the "— Starter templates —" placeholder. Load itself is
+    guarded so intermediate setChord calls don't self-clear.
+  - Drag-to-extend bug fix: `installGripHandlers` used to
+    `setPointerCapture` on the grip element itself, then call
+    `rebuildTrack` on every accepted move — which destroyed the
+    capturing element and dropped the drag. The pointermove /
+    pointerup listeners are now on `document` so rebuilds don't
+    break the drag. Clamp is still `[1, maxDurationAt]`.
+  - Mute button: closure-captured `track` object became stale after
+    rebuild, so the second click flipped the wrong value. Both the
+    mute click handler and the instrument-selector change handler
+    now read `this.settings.tracks[t]` live. Text `mute` / `unmute`
+    swapped for SVG speaker icons (muted has an X), 24×22 footprint
+    so the row stays within the 168px track header.
+  - Added `body.resizing-cell` CSS so the ew-resize cursor stays
+    active during the document-level drag.
+  - Docs: wrote `docs/versions/0.0.5.md`, appended to
+    `docs/versions/index.md`, ticked the new items in `docs/TODO.md`,
+    appended this log entry.
 - 2026-04-20: **Round 4** — minimal-mode toggle on the 3D view, plus
   a docs reorganization into per-experiment and per-version folders.
   - `TorusView.setMinimalMode(hide)` added. When hide=true the torus

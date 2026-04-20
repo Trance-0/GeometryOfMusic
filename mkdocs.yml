@@ -51,6 +51,7 @@ nav:
       - 0.0.2: versions/0.0.2.md
       - 0.0.3: versions/0.0.3.md
       - 0.0.4: versions/0.0.4.md
+      - 0.0.5: versions/0.0.5.md
   - Deployment:
       - Cloudflare Pages (app): deployment/cloudflare-pages.md
       - Vercel (app): deployment/vercel.md

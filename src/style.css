@@ -437,7 +437,7 @@ body[data-theme="light"] .legend {
 
 .tl-row {
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 168px 1fr;
   gap: 6px;
   align-items: stretch;
   min-height: 34px;
@@ -493,7 +493,9 @@ body[data-theme="light"] .legend {
   border-radius: 3px;
   padding: 2px 4px;
   font-size: 11px;
-  max-width: 88px;
+  max-width: 72px;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .tl-track-mute {
@@ -501,12 +503,29 @@ body[data-theme="light"] .legend {
   color: var(--text-dim) !important;
   border: 1px solid var(--border) !important;
   border-radius: 3px !important;
-  padding: 2px 6px !important;
+  padding: 0 !important;
   font-size: 11px !important;
   cursor: pointer;
+  width: 24px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.tl-track-mute[aria-pressed="true"] {
+.tl-track-mute svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.tl-track-mute:hover {
+  color: var(--text) !important;
+  border-color: var(--accent) !important;
+}
+
+.tl-track-mute.is-muted {
   background: var(--warn) !important;
   color: #1a1a1a !important;
   border-color: var(--warn) !important;
@@ -599,6 +618,12 @@ body[data-theme="light"] .legend {
 body[data-theme="light"] .tl-cell.filled:hover .tl-cell-grip,
 body[data-theme="light"] .tl-cell-grip.dragging {
   background: rgba(0, 0, 0, 0.25);
+}
+
+body.resizing-cell,
+body.resizing-cell * {
+  cursor: ew-resize !important;
+  user-select: none;
 }
 
 .legend-title {
