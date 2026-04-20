@@ -12,6 +12,7 @@ for humans.
 | [0.0.4](0.0.4.md) | 2026-04-20 | Hide-torus toggle, docs reorg (experiments + versions). |
 | [0.0.5](0.0.5.md) | 2026-04-20 | Multi-dyad highlight, closed curves, red playhead indicator, track-colored nodes, preset dropdown persistence, drag-to-extend fix, mute-button fix and icon. |
 | [0.0.6](0.0.6.md) | 2026-04-20 | Mobile-friendly navbar hamburger, right-drag rotates and middle-drag pans, reset-view + hide-torus moved to top-right above the legend. |
+| [0.0.7](0.0.7.md) | 2026-04-20 | Playhead moved from torus to a smooth red line on the timeline with drag-scrub; highlight glow now uses track color; cells colored per track. |
 
 0.1.0 will cut the first tagged release once the roadmap items in
 [`TODO.md`](../TODO.md) labelled "pending version 0.1" are cleared.

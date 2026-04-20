@@ -33,6 +33,7 @@ export interface TimelineCallbacks {
   onPlacePressed(): void;
   onClearPressed(): void;
   onPlacementChanged(): void;
+  onScrub(cellIndex: number): void;
 }
 
 export interface Selection {
@@ -47,8 +48,9 @@ export class TimelineView {
   // Per-track arrays. Each entry is either a Placement that starts at
   // that cell or null (empty / continuation of a preceding placement).
   private chords: (Placement | null)[][] = [];
-  private activeCell: number | null = null;
   private selection: Selection = { track: 0, cell: 0 };
+  private playhead: HTMLElement;
+  private playheadCell: number | null = null;
   private dragState: {
     track: number;
     startCell: number;
@@ -69,8 +71,27 @@ export class TimelineView {
     this.chords = this.settings.tracks.map(() => []);
     this.root.tabIndex = 0;
     this.root.setAttribute("role", "grid");
+    this.playhead = this.ensurePlayheadElement();
     this.installKeyboard();
+    this.installScrub();
     this.rebuild();
+  }
+
+  private ensurePlayheadElement(): HTMLElement {
+    const parent = this.root.parentElement;
+    if (!parent) {
+      throw new Error(
+        "Timeline bootstrap failed: timeline-view / playhead mount — the #timeline element has no parent to host the playhead overlay.",
+      );
+    }
+    const existing = parent.querySelector<HTMLElement>(".tl-playhead");
+    if (existing) return existing;
+    const el = document.createElement("div");
+    el.className = "tl-playhead";
+    el.style.display = "none";
+    el.setAttribute("aria-hidden", "true");
+    parent.appendChild(el);
+    return el;
   }
 
   configure(partial: Partial<TimelineSettings>): void {
@@ -219,19 +240,89 @@ export class TimelineView {
     return null;
   }
 
-  setActiveCell(cellIndex: number | null): void {
+  /**
+   * Position the smooth red playhead line over the current cell. `stepMs`
+   * is the duration the line should take to glide to the target, used as
+   * the CSS transition duration. Pass 0 for an instant move (used for the
+   * loop-back from the last cell to cell 0, and for user scrubs).
+   * Passing `null` hides the playhead.
+   */
+  setPlayheadPosition(cellIndex: number | null, stepMs: number): void {
+    if (cellIndex === null) {
+      this.playhead.style.display = "none";
+      this.playheadCell = null;
+      return;
+    }
+    const cellsWrap = this.resolveCellsWrap();
+    const parent = this.playhead.parentElement;
+    if (!cellsWrap || !parent) return;
+    this.playhead.style.display = "block";
+    const parentRect = parent.getBoundingClientRect();
+    const cellsRect = cellsWrap.getBoundingClientRect();
+    const leftInParent =
+      cellsRect.left - parentRect.left + parent.scrollLeft;
     const total = this.totalCells();
-    const prev = this.activeCell;
-    if (prev !== null) {
-      for (let t = 0; t < this.settings.tracks.length; t++) {
-        this.cellAt(t, prev)?.classList.remove("active");
-      }
-    }
-    this.activeCell = cellIndex;
-    if (cellIndex === null || cellIndex < 0 || cellIndex >= total) return;
-    for (let t = 0; t < this.settings.tracks.length; t++) {
-      this.cellAt(t, cellIndex)?.classList.add("active");
-    }
+    const cellWidth = cellsRect.width / total;
+    const targetLeft = leftInParent + cellIndex * cellWidth;
+    this.playhead.style.transition =
+      stepMs > 0 ? `transform ${stepMs}ms linear` : "none";
+    this.playhead.style.transform = `translateX(${targetLeft}px)`;
+    this.playheadCell = cellIndex;
+  }
+
+  private resolveCellsWrap(): HTMLElement | null {
+    return (
+      this.root.querySelector<HTMLElement>(
+        ".tl-row:not(.tl-header) .tl-cells",
+      ) ?? this.root.querySelector<HTMLElement>(".tl-cells")
+    );
+  }
+
+  private installScrub(): void {
+    // Event delegation so the handler survives `rebuild()` (which replaces
+    // the header row DOM).
+    let dragging = false;
+    let pointerId: number | null = null;
+
+    const cellAtClientX = (clientX: number): number | null => {
+      const cellsWrap = this.resolveCellsWrap();
+      if (!cellsWrap) return null;
+      const rect = cellsWrap.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const total = this.totalCells();
+      if (rect.width <= 0 || total <= 0) return null;
+      const cellWidth = rect.width / total;
+      return Math.max(
+        0,
+        Math.min(total - 1, Math.floor(x / cellWidth)),
+      );
+    };
+
+    this.root.addEventListener("pointerdown", (e) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const header = target.closest<HTMLElement>(".tl-row.tl-header");
+      if (!header) return;
+      e.preventDefault();
+      dragging = true;
+      pointerId = e.pointerId;
+      const cell = cellAtClientX(e.clientX);
+      if (cell !== null) this.callbacks.onScrub(cell);
+    });
+
+    const onMove = (e: PointerEvent): void => {
+      if (!dragging || e.pointerId !== pointerId) return;
+      const cell = cellAtClientX(e.clientX);
+      if (cell !== null) this.callbacks.onScrub(cell);
+    };
+    const onUp = (e: PointerEvent): void => {
+      if (!dragging || e.pointerId !== pointerId) return;
+      dragging = false;
+      pointerId = null;
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onUp);
   }
 
   setSelection(sel: Partial<Selection>): void {
@@ -339,7 +430,6 @@ export class TimelineView {
     if (cellsWrap) {
       this.renderTrackCells(trackIndex, cellsWrap);
     }
-    if (this.activeCell !== null) this.setActiveCell(this.activeCell);
     this.renderSelection();
   }
 
@@ -480,7 +570,12 @@ export class TimelineView {
     }
 
     this.renderSelection();
-    if (this.activeCell !== null) this.setActiveCell(this.activeCell);
+    // Preserve the playhead position across rebuilds; the element itself
+    // lives outside `this.root`, but the cells it references are new, so
+    // re-measure and re-position without animating.
+    if (this.playheadCell !== null) {
+      this.setPlayheadPosition(this.playheadCell, 0);
+    }
   }
 
   /**
@@ -491,6 +586,8 @@ export class TimelineView {
   private renderTrackCells(trackIndex: number, container: HTMLElement): void {
     const total = this.totalCells();
     const row = this.chords[trackIndex] ?? [];
+    const track = this.settings.tracks[trackIndex];
+    const trackColor = track?.color ?? "";
     container.textContent = "";
     const cellsPerBar = this.settings.cellsPerBar;
     const cellsPerBeat = cellsPerBar / this.settings.beatsPerBar;
@@ -504,6 +601,7 @@ export class TimelineView {
         el.dataset.cellIndex = String(i);
         el.dataset.duration = String(p.duration);
         el.style.gridColumn = `span ${p.duration}`;
+        if (trackColor) el.style.setProperty("--cell-color", trackColor);
         el.textContent = dyadName(p.dyad);
         el.title = `${dyadName(p.dyad)} · ${p.duration} cell${p.duration === 1 ? "" : "s"}`;
         if (i % cellsPerBar === 0) el.classList.add("downbeat");

@@ -459,6 +459,46 @@ body[data-theme="light"] .legend {
   padding: 10px;
   overflow: auto;
   min-height: 120px;
+  position: relative;
+}
+
+.tl-playhead {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--danger);
+  box-shadow: 0 0 8px rgba(255, 107, 122, 0.65);
+  pointer-events: none;
+  z-index: 5;
+  transform: translateX(0);
+  will-change: transform;
+  display: none;
+}
+
+.tl-playhead::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--danger);
+  box-shadow: 0 0 8px rgba(255, 107, 122, 0.8);
+}
+
+.tl-row.tl-header .tl-cells {
+  cursor: ew-resize;
+}
+
+.tl-row.tl-header .tl-cells:hover {
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 107, 122, 0.08)
+  );
+  border-radius: 3px;
 }
 
 #timeline {
@@ -603,14 +643,13 @@ body[data-theme="light"] .legend {
 }
 
 .tl-cell.filled {
-  background: var(--accent-dim);
-  color: white;
+  background: var(--cell-color, var(--accent-dim));
+  color: #1a1a1a;
   font-weight: 600;
 }
 
-.tl-cell.active {
-  outline: 2px solid var(--playhead);
-  outline-offset: -2px;
+body[data-theme="light"] .tl-cell.filled {
+  color: #0b0d12;
 }
 
 .tl-cell.selected {

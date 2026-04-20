@@ -31,8 +31,6 @@ interface NodeEntry {
   readonly dyad: Dyad;
 }
 
-const PLAYHEAD_COLOR = 0xff3b3b;
-
 export interface TrackPath {
   readonly color: string | number;
   readonly dyads: readonly Dyad[];
@@ -60,11 +58,6 @@ export class TorusView {
   private highlightedKeys = new Set<string>();
   private trackLines: TrackLine[] = [];
   private trackColorMap = new Map<string, THREE.Color>();
-  private playheadMarkers: THREE.Mesh[] = [];
-  private playheadLine: THREE.Line | null = null;
-  private playheadMarkerGeom: THREE.SphereGeometry | null = null;
-  private playheadMarkerMat: THREE.MeshBasicMaterial | null = null;
-  private playheadLineMat: THREE.LineBasicMaterial | null = null;
   private resizeObserver: ResizeObserver;
   private animationId: number | null = null;
   private callbacks: TorusViewCallbacks;
@@ -261,7 +254,9 @@ export class TorusView {
   /**
    * Highlight zero or more dyads simultaneously. Every previously highlighted
    * node that is not in the new set is un-highlighted. Used during playback
-   * so every currently-sounding track lights up its own node.
+   * so every currently-sounding track lights up its own node. The emissive
+   * color follows the node's track color when the node is part of a track,
+   * so a pink-track node glows pink (not the interval-class color).
    */
   highlightDyads(dyads: readonly Dyad[]): void {
     const next = new Set<string>();
@@ -271,7 +266,8 @@ export class TorusView {
       const entry = this.nodes.get(key);
       if (!entry) continue;
       const mat = entry.mesh.material as THREE.MeshStandardMaterial;
-      mat.emissive.copy(entry.baseColor).multiplyScalar(0.14);
+      const glow = this.trackColorMap.get(key) ?? entry.baseColor;
+      mat.emissive.copy(glow).multiplyScalar(0.14);
       entry.mesh.scale.setScalar(1);
     }
     for (const key of next) {
@@ -279,7 +275,8 @@ export class TorusView {
       const entry = this.nodes.get(key);
       if (!entry) continue;
       const mat = entry.mesh.material as THREE.MeshStandardMaterial;
-      mat.emissive.copy(entry.baseColor).multiplyScalar(1.4);
+      const glow = this.trackColorMap.get(key) ?? entry.baseColor;
+      mat.emissive.copy(glow).multiplyScalar(1.4);
       entry.mesh.scale.setScalar(1.7);
     }
     this.highlightedKeys = next;
@@ -341,82 +338,15 @@ export class TorusView {
     for (const [key, entry] of this.nodes) {
       const mat = entry.mesh.material as THREE.MeshStandardMaterial;
       const tc = this.trackColorMap.get(key);
-      if (tc) {
-        mat.color.copy(tc);
-      } else {
-        mat.color.copy(entry.baseColor);
-      }
+      const body = tc ?? entry.baseColor;
+      mat.color.copy(body);
+      // Keep the emissive base in sync so a re-highlight later uses the
+      // correct glow color without needing to reach back into trackColorMap.
+      const scale = this.highlightedKeys.has(key) ? 1.4 : 0.14;
+      mat.emissive.copy(body).multiplyScalar(scale);
     }
   }
 
-  /**
-   * Red progress indicator shown during playback. Each currently-sounding
-   * dyad gets a small bright sphere, and if two or more tracks sound at
-   * the same step they are connected by a red line (a triangle if all
-   * three tracks are active). Pass an empty array to hide the indicator.
-   */
-  setPlayhead(dyads: readonly Dyad[]): void {
-    // Ensure marker pool exists.
-    if (!this.playheadMarkerGeom) {
-      this.playheadMarkerGeom = new THREE.SphereGeometry(
-        NODE_RADIUS * 1.55,
-        14,
-        14,
-      );
-    }
-    if (!this.playheadMarkerMat) {
-      this.playheadMarkerMat = new THREE.MeshBasicMaterial({
-        color: PLAYHEAD_COLOR,
-        transparent: true,
-        opacity: 0.95,
-      });
-    }
-    while (this.playheadMarkers.length < dyads.length) {
-      const m = new THREE.Mesh(
-        this.playheadMarkerGeom,
-        this.playheadMarkerMat,
-      );
-      m.renderOrder = 5;
-      this.scene.add(m);
-      this.playheadMarkers.push(m);
-    }
-    for (let i = 0; i < this.playheadMarkers.length; i++) {
-      const m = this.playheadMarkers[i];
-      if (!m) continue;
-      const d = dyads[i];
-      if (d) {
-        m.visible = true;
-        m.position.copy(toroidalPosition(d.a, d.b));
-      } else {
-        m.visible = false;
-      }
-    }
-    // Red connecting line through the currently-sounding dyads.
-    if (this.playheadLine) {
-      this.scene.remove(this.playheadLine);
-      this.playheadLine.geometry.dispose();
-      this.playheadLine = null;
-    }
-    if (dyads.length >= 2) {
-      const pts = dyads.map((d) => toroidalPosition(d.a, d.b));
-      if (dyads.length >= 3) {
-        const first = pts[0];
-        if (first) pts.push(first.clone());
-      }
-      const geom = new THREE.BufferGeometry().setFromPoints(pts);
-      if (!this.playheadLineMat) {
-        this.playheadLineMat = new THREE.LineBasicMaterial({
-          color: PLAYHEAD_COLOR,
-          transparent: true,
-          opacity: 0.9,
-        });
-      }
-      const line = new THREE.Line(geom, this.playheadLineMat);
-      line.renderOrder = 4;
-      this.scene.add(line);
-      this.playheadLine = line;
-    }
-  }
 
   /**
    * Minimal mode hides the torus shell, the voice-leading grid edges, and
@@ -523,13 +453,6 @@ export class TorusView {
       tl.line.geometry.dispose();
       tl.material.dispose();
     }
-    if (this.playheadLine) {
-      this.playheadLine.geometry.dispose();
-      this.playheadLine = null;
-    }
-    this.playheadMarkerGeom?.dispose();
-    this.playheadMarkerMat?.dispose();
-    this.playheadLineMat?.dispose();
     if (this.renderer.domElement.parentNode === this.container) {
       this.container.removeChild(this.renderer.domElement);
     }

@@ -336,6 +336,9 @@ function main(): void {
       onPlacementChanged() {
         refreshPaths();
       },
+      onScrub(cellIndex) {
+        scrubTo(cellIndex);
+      },
     },
     {
       bars: state.bars,
@@ -414,12 +417,30 @@ function main(): void {
     }
     state.playing = false;
     state.playheadIndex = null;
-    timeline.setActiveCell(null);
+    timeline.setPlayheadPosition(null, 0);
     synth.stopAll();
-    torus.setPlayhead([]);
     torus.highlightDyad(state.currentDyad);
     playBtn.textContent = "Play";
     playBtn.classList.remove("playing");
+  };
+
+  // Scrub = set playhead to an arbitrary cell (user drags across the
+  // timeline's header row). If paused, it just moves the visual cursor
+  // and the next Play starts there. If playing, it cancels the current
+  // timeout and restarts playback from the scrubbed cell so the audio
+  // jumps with the line.
+  const scrubTo = (cellIndex: number): void => {
+    if (state.playing) {
+      if (state.schedulerId !== null) {
+        window.clearTimeout(state.schedulerId);
+        state.schedulerId = null;
+      }
+      synth.stopAll();
+      playStep(cellIndex);
+    } else {
+      state.playheadIndex = cellIndex;
+      timeline.setPlayheadPosition(cellIndex, 0);
+    }
   };
 
   const stepMs = (): number => {
@@ -433,8 +454,12 @@ function main(): void {
     if (!state.playing) return;
     const total = timeline.totalCells();
     const idx = i % total;
+    const prev = state.playheadIndex;
+    // Snap (no animation) on the loop wrap from last cell back to cell 0
+    // so the line doesn't visibly race backwards across the whole row.
+    const instantMove = prev !== null && idx < prev;
     state.playheadIndex = idx;
-    timeline.setActiveCell(idx);
+    timeline.setPlayheadPosition(idx, instantMove ? 0 : stepMs());
     const oneStepSec = stepMs() / 1000;
     // Trigger audio only for placements that START at this cell — held
     // chords from earlier cells are already sounding.
@@ -445,9 +470,8 @@ function main(): void {
       const durationSec = placement.duration * oneStepSec;
       synth.playDyad(t, placement.dyad, state.octave, durationSec);
     }
-    // Build the list of dyads actually sounding right now — includes any
-    // placement whose span covers idx, not just those starting at idx.
-    // Used for both the emissive highlight and the red playhead indicator.
+    // Collect dyads actually sounding right now — any placement whose span
+    // covers idx, not just ones starting at idx — for the emissive glow.
     const active: Dyad[] = [];
     for (let t = 0; t < timeline.trackCount(); t++) {
       const owner = timeline.placementCovering(t, idx);
@@ -456,7 +480,6 @@ function main(): void {
       if (p) active.push(p.dyad);
     }
     torus.highlightDyads(active);
-    torus.setPlayhead(active);
     state.schedulerId = window.setTimeout(() => playStep(idx + 1), stepMs());
   };
 
@@ -473,7 +496,9 @@ function main(): void {
     state.playing = true;
     playBtn.textContent = "Pause";
     playBtn.classList.add("playing");
-    playStep(0);
+    // Resume from where the playhead last was (scrub + pause puts it on a
+    // cell), or from cell 0 if the transport hasn't moved yet.
+    playStep(state.playheadIndex ?? 0);
   });
   stopBtn.addEventListener("click", stop);
 

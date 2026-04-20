@@ -152,8 +152,12 @@ durations to reshape the rhythm.
    (1/4 · 1/8 · 1/16), bars (1–16).
 5. **Play.** Press **Play** (or Space outside the timeline). Each step:
    - every un-muted track's dyad plays on its instrument,
-   - the torus node for the last dyad this step glows,
-   - the playhead outlines the active cell.
+   - the torus nodes for every currently-sounding dyad glow in their
+     track's color (held chords stay lit for their whole duration),
+   - a **smooth red playhead line** slides across the timeline at the
+     current cell; drag the beat-number row at the top of the
+     timeline to **scrub** the line (and the audio) to an arbitrary
+     start position.
 6. **Read the torus.** The yellow polyline traces the full progression in
    order (the first non-null dyad of each step is what the path connects).
 

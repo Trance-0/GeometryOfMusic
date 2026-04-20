@@ -60,6 +60,33 @@ for the canonical checklist. The items that need extra care in this repo:
 
 Append, do not rewrite.
 
+- 2026-04-20: **Round 7** — playhead correction + colors.
+  - Playhead moved from the torus to the 2D timeline.
+    `TorusView.setPlayhead` and its sphere pool / connecting line
+    are gone entirely. `TimelineView.setPlayheadPosition(cellIndex,
+    stepMs)` positions a `.tl-playhead` absolute-positioned
+    element inside `#timeline-view` and glides it to the next cell
+    with a `transform Xms linear` transition. Loop wrap is
+    snap-instant (transition "none"). Per-cell `.active` outline and
+    `setActiveCell` method removed.
+  - Scrub: pointerdown on the header row's cells container fires
+    `onScrub(cellIndex)` callback. During pause it just moves the
+    line; during play, main.ts cancels the current setTimeout and
+    restarts `playStep(cellIndex)`, so the line + audio jump
+    together.
+  - Highlight glow picks its color from `trackColorMap` first,
+    falling back to the interval-class `baseColor` only when the
+    dyad is not part of any track. Pink-track nodes now glow pink.
+    `applyTrackNodeColors` also keeps the resting emissive in sync
+    so a later highlight lifts from the correct base.
+  - Filled cells colored per track: `renderTrackCells` sets
+    `--cell-color` on each filled element; the `.tl-cell.filled`
+    rule reads that custom property. Text color switched to dark so
+    dyad names stay readable against gold / blue / pink. Added a
+    light-theme dark-text override for completeness.
+  - Docs: wrote `docs/versions/0.0.7.md`, appended
+    `docs/versions/index.md`, added to `mkdocs.yml` nav, ticked
+    the new items in `docs/TODO.md`, appended this log.
 - 2026-04-20: **Round 6** — layout pass.
   - Hamburger nav on mobile. New `#nav-toggle` in the topbar, hidden
     above 720 px. Under 720 px, `#space-nav` becomes a full-width
