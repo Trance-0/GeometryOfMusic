@@ -40,12 +40,20 @@ Useful scripts:
 
 ## How to drive the app
 
-See [docs/usage.md](docs/usage.md) for the full tour. Short version:
+See [docs/usage.md](docs/usage.md) for the full tour, and
+[docs/experiment/](docs/experiment/index.md) for the math and music
+theory behind each musical space. Short version:
 
-1. Pick a dyad (voice A, voice B, octave).
-2. Click cells on the timeline to place the current dyad.
-3. Press **Play**. The torus lights up each node as it plays and traces the
-   progression as a polyline on the surface.
+1. Pick a dyad (voice A, voice B, octave), or left-click a node on the
+   torus.
+2. Click cells on the timeline to place the current dyad on any of
+   three tracks (Lead · Bass · Pad).
+3. Drag the right edge of a placed chord to extend its duration. Or
+   load a **Preset** (I–V–vi–IV, Pachelbel's Canon, 12-bar blues,
+   ii–V–I).
+4. Press **Play**. Each track traces a colored curve on the torus as
+   it plays; toggle **Hide torus** to show only the curves and
+   visited vertices.
 
 ## Deployment
 

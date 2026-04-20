@@ -44,7 +44,7 @@ for the canonical checklist. The items that need extra care in this repo:
 - [ ] `npm run docs:build` passes `--strict` (mkdocs-material installed).
 - [ ] Deployment docs under `docs/deployment/` match the commands in
       `package.json` and `.github/workflows/`.
-- [ ] `README.md`, `docs/readme.md`, and `docs/usage.md` still describe
+- [ ] `README.md`, `docs/index.md`, and `docs/usage.md` still describe
       what actually ships. If you added or removed a UI control, all three
       must be touched in the same commit.
 - [ ] `.gitignore` covers `node_modules/`, `dist/`, `site/`, `.vite/`,
@@ -59,6 +59,39 @@ for the canonical checklist. The items that need extra care in this repo:
 
 Append, do not rewrite.
 
+- 2026-04-20: **Round 4** — minimal-mode toggle on the 3D view, plus
+  a docs reorganization into per-experiment and per-version folders.
+  - `TorusView.setMinimalMode(hide)` added. When hide=true the torus
+    shell and the voice-leading grid edges become invisible, and
+    every node that is not part of a current track path becomes
+    invisible. The currently highlighted node stays visible so
+    picker / keyboard selection still works even if the selected
+    chord is not yet on any track.
+  - `TorusView.setTrackPaths` now also rebuilds the set of "used"
+    dyad keys so node visibility recomputes whenever the timeline
+    changes.
+  - New **Hide torus** checkbox in the upper-left overlay of the 3D
+    view, next to **Reset view**. State persists in `gom.hideTorus`.
+  - Docs reorganized: `docs/readme.md` was deleted. Its content was
+    split across `docs/index.md` (landing + top-level architecture)
+    and `docs/experiment/torus-dyad.md` (the torus-specific math /
+    theory / rendering notes).
+  - New `docs/experiment/` (name chosen to match the folder the user
+    created) with one page per musical space, each with three
+    sections: music-theory reading, mathematical reading, and how
+    the app renders it (or plans to). Pages: `torus-dyad.md`
+    (shipped), `tonnetz.md`, `dyad-orbifold.md`,
+    `triad-orbifold.md`, `voice-leading.md`,
+    `schoenberg-regions.md`, plus `index.md` as the overview.
+  - New `docs/versions/` with one page per pre-0.1 round
+    (0.0.1 through 0.0.4) plus an `index.md` overview. Each page
+    summarizes the visible changes of the round for humans.
+  - `mkdocs.yml` nav updated: new **Experiments** and **Versions**
+    sections, old `readme.md` entry removed, MathJax loader added
+    for the TeX-formatted math on the experiment pages.
+  - Dangling `readme.md` references in `docs/usage.md`,
+    `docs/LLM_CHECK.md`, and the round-2 log fixed or
+    reinterpreted.
 - 2026-04-20: **Round 3** — per-track curves, durations, starter
   templates, wireframe cleanup.
   - `TorusView.setProgressionPath` replaced with `setTrackPaths` that
@@ -91,7 +124,7 @@ Append, do not rewrite.
     the first transport row loads them (clears the timeline and
     updates meter / bars / subdivision first).
   - `docs/usage.md` rewritten to document curves, durations,
-    drag-to-extend, and the preset menu; `docs/readme.md` and
+    drag-to-extend, and the preset menu; `docs/index.md` and
     `docs/TODO.md` updated; this log entry appended.
   - Verified: `npm run typecheck` clean; `npm run build` clean
     (dist JS grew from ~497 KB to ~509 KB gzipped 132 KB — over the
@@ -140,7 +173,7 @@ Append, do not rewrite.
   `geometry-of-music`). `deploy-docs.yml` builds `docs/` with
   mkdocs-material and publishes to GitHub Pages under `/GeometryOfMusic/`.
   Alternative Vercel instructions documented but no workflow yet.
-- 2026-04-20: Wrote `docs/readme.md`, `docs/usage.md`, `docs/TODO.md`,
+- 2026-04-20: Wrote `docs/index.md`, `docs/usage.md`, `docs/TODO.md`,
   `docs/LLM_CHECK.md`, and deployment guides for CF Pages, Vercel, and
   GitHub Pages (docs). Root `README.md` kept brief with links into
   `docs/`.

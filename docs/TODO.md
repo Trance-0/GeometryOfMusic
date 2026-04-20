@@ -1,4 +1,6 @@
-# Roadmap
+# TODO
+
+Pending version 0.1
 
 Tracked out of the scope of round 1 (the torus-dyad prototype). Items are
 grouped by the book chapter or geometric structure they implement. Order

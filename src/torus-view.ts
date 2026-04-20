@@ -65,6 +65,8 @@ export class TorusView {
   private readonly initialTarget = new THREE.Vector3(0, 0, 0);
   private torusShell: THREE.Mesh | null = null;
   private voiceLeadingLines: THREE.LineSegments | null = null;
+  private minimalMode = false;
+  private usedDyadKeys = new Set<string>();
 
   constructor(container: HTMLElement, callbacks: TorusViewCallbacks = {}) {
     this.container = container;
@@ -251,25 +253,29 @@ export class TorusView {
     }
     if (dyad === null) {
       this.highlightedKey = null;
+      this.applyNodeVisibility();
       return;
     }
     const key = dyadKey(dyad);
     const entry = this.nodes.get(key);
     if (!entry) {
       this.highlightedKey = null;
+      this.applyNodeVisibility();
       return;
     }
     const mat = entry.mesh.material as THREE.MeshStandardMaterial;
     mat.emissive.copy(entry.baseColor).multiplyScalar(1.4);
     entry.mesh.scale.setScalar(1.7);
     this.highlightedKey = key;
+    this.applyNodeVisibility();
   }
 
   /**
    * Replace all per-track curves. Each track renders as a smooth
    * Catmull-Rom curve through its placed dyads, in its own color. Tracks
    * with fewer than two dyads render as nothing (a curve needs at least
-   * two anchors).
+   * two anchors). Also updates the set of "used" dyad keys, which drives
+   * node visibility when minimal mode hides the rest of the lattice.
    */
   setTrackPaths(paths: readonly TrackPath[]): void {
     for (const tl of this.trackLines) {
@@ -278,11 +284,11 @@ export class TorusView {
       tl.material.dispose();
     }
     this.trackLines = [];
+    this.usedDyadKeys.clear();
     for (const path of paths) {
+      for (const d of path.dyads) this.usedDyadKeys.add(dyadKey(d));
       if (path.dyads.length < 2) continue;
       const pts = path.dyads.map((d) => toroidalPosition(d.a, d.b));
-      // `centripetal` tension keeps the curve near the anchors when
-      // successive dyads are far apart on the torus.
       const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
       const sampleCount = Math.max(32, path.dyads.length * 24);
       const samples = curve.getPoints(sampleCount);
@@ -296,6 +302,30 @@ export class TorusView {
       line.renderOrder = 2; // draw curves on top of the grid edges
       this.scene.add(line);
       this.trackLines.push({ line, material });
+    }
+    this.applyNodeVisibility();
+  }
+
+  /**
+   * Minimal mode hides the torus shell, the voice-leading grid edges, and
+   * any node that does not appear in a current track path. The currently
+   * highlighted node stays visible so picking still works.
+   */
+  setMinimalMode(hide: boolean): void {
+    this.minimalMode = hide;
+    if (this.torusShell) this.torusShell.visible = !hide;
+    if (this.voiceLeadingLines) this.voiceLeadingLines.visible = !hide;
+    this.applyNodeVisibility();
+  }
+
+  private applyNodeVisibility(): void {
+    if (!this.minimalMode) {
+      for (const entry of this.nodes.values()) entry.mesh.visible = true;
+      return;
+    }
+    for (const [key, entry] of this.nodes) {
+      entry.mesh.visible =
+        this.usedDyadKeys.has(key) || key === this.highlightedKey;
     }
   }
 

@@ -205,6 +205,7 @@ function main(): void {
   const app = requireEl<HTMLElement>("app");
   const resizeHandle = requireEl<HTMLElement>("resize-handle");
   const resetViewBtn = requireEl<HTMLButtonElement>("reset-view-btn");
+  const hideTorusChk = requireEl<HTMLInputElement>("hide-torus-chk");
   const themeBtn = requireEl<HTMLButtonElement>("theme-btn");
   const helpBtn = requireEl<HTMLButtonElement>("help-btn");
   const presetSel = requireEl<HTMLSelectElement>("preset-select");
@@ -226,6 +227,15 @@ function main(): void {
   buildLegend(torus, DEFAULT_TRACKS);
 
   resetViewBtn.addEventListener("click", () => torus.resetCamera());
+
+  const HIDE_TORUS_KEY = "gom.hideTorus";
+  const storedHide = localStorage.getItem(HIDE_TORUS_KEY) === "1";
+  hideTorusChk.checked = storedHide;
+  torus.setMinimalMode(storedHide);
+  hideTorusChk.addEventListener("change", () => {
+    torus.setMinimalMode(hideTorusChk.checked);
+    localStorage.setItem(HIDE_TORUS_KEY, hideTorusChk.checked ? "1" : "0");
+  });
 
   mountThemeToggle(themeBtn, () => {
     torus.applySceneTheme();

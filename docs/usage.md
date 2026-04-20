@@ -1,7 +1,9 @@
 # Using the app
 
-Tour of the prototype. For the architecture, see [readme.md](readme.md); for
-the roadmap, [TODO.md](TODO.md).
+Tour of the prototype. For the architecture, see [index.md](index.md);
+for the list of musical spaces and the math behind them, see
+[experiment/](experiment/index.md); for the roadmap,
+[TODO.md](TODO.md).
 
 On first visit a **welcome modal** walks through mouse, keyboard, and theme
 shortcuts. You can reopen it any time from the **?** button in the top-right

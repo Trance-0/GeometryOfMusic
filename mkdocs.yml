@@ -36,8 +36,21 @@ theme:
 
 nav:
   - Home: index.md
-  - How the project works: readme.md
   - Usage: usage.md
+  - Experiments:
+      - Overview: experiment/index.md
+      - Torus (ordered dyads): experiment/torus-dyad.md
+      - Tonnetz (triads): experiment/tonnetz.md
+      - Dyad orbifold (Möbius): experiment/dyad-orbifold.md
+      - Triad orbifold: experiment/triad-orbifold.md
+      - Voice-leading lattice: experiment/voice-leading.md
+      - Harmonic functions (Schoenberg): experiment/schoenberg-regions.md
+  - Versions:
+      - Overview: versions/index.md
+      - 0.0.1: versions/0.0.1.md
+      - 0.0.2: versions/0.0.2.md
+      - 0.0.3: versions/0.0.3.md
+      - 0.0.4: versions/0.0.4.md
   - Deployment:
       - Cloudflare Pages (app): deployment/cloudflare-pages.md
       - Vercel (app): deployment/vercel.md
@@ -53,5 +66,10 @@ markdown_extensions:
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
 
 strict: true
