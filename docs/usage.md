@@ -1,100 +1,115 @@
 # Using the app
 
-This is a quick tour. For the architecture, see [readme.md](readme.md).
+Tour of the prototype. For the architecture, see [readme.md](readme.md); for
+the roadmap, [TODO.md](TODO.md).
 
-## The three panels
+On first visit a **welcome modal** walks through mouse, keyboard, and theme
+shortcuts. You can reopen it any time from the **?** button in the top-right
+corner.
 
-```
+## Panel layout
+
+```text
 ┌────────────────────────────────────────────┐
-│ navbar: choose a musical space             │
+│ navbar · help button (?)                   │
 ├────────────────────────────────────────────┤
-│                                            │
-│        upper panel: 3D torus lattice       │
-│        (drag to orbit, scroll to zoom)     │
-│                                            │
+│ [reset view]                               │
+│        3D torus lattice (upper panel)      │
+│        left click: pick node               │
+│        middle drag: rotate                 │
+│        right drag: pan                     │
+│        scroll: zoom                        │
+│                                   [legend] │
+├════════════════════════════════════════════┤  ← drag to resize
+│ transport · theme toggle                   │
+│ current dyad · placement hints             │
 ├────────────────────────────────────────────┤
-│  transport: Play / Stop / BPM / meter /    │
-│  subdivision / bars / current dyad         │
-├────────────────────────────────────────────┤
-│                                            │
-│        lower panel: beat-grid timeline     │
-│                                            │
+│        timeline (lower panel)              │
+│        3 tracks × beat grid                │
 └────────────────────────────────────────────┘
 ```
 
-## Step 1 — pick a dyad
+The thick bar between the 3D view and the transport is a drag handle:
+**drag** it up or down to resize the upper and lower panels; **double-click**
+to reset to the default split. Your chosen ratio is remembered per browser.
 
-In the **Current dyad** block, set:
+## Mouse controls on the 3D view
 
-- **Voice A** — the lower voice (pitch class 0–11, i.e. C through B).
-- **Voice B** — the upper voice.
-- **Octave** — the octave at which voice A is voiced for audio playback.
-  Voice B plays in the same octave unless that would cross voice A, in which
-  case you will hear a crossed dyad (this is intentional — voice crossings
-  are musically meaningful in the torus embedding).
+| Gesture         | Action                                              |
+|-----------------|-----------------------------------------------------|
+| Left click      | Select the clicked node as the current dyad.        |
+| Middle drag     | Orbit the camera.                                   |
+| Right drag      | Pan the camera.                                     |
+| Scroll wheel    | Zoom (dolly).                                       |
+| Touch, 1 finger | Orbit.                                              |
+| Touch, 2 finger | Pan + pinch-zoom.                                   |
 
-The chord name updates live next to the pickers, e.g. `C–E · maj 3rd`. The
-matching node on the torus glows and scales up so you can see where that
-dyad sits in the lattice.
+The **Reset view** button in the upper-left corner of the 3D view returns
+the camera and orbit target to the starting framing.
 
-## Step 2 — place it on the timeline
+## Keyboard shortcuts
 
-Click any cell in the lower timeline to drop the current dyad there. Click
-the cell again to clear it. Each filled cell shows the dyad name; hover to
-read the full tooltip.
+Inside the **timeline** (click it once to focus):
 
-The cell grid updates with the transport:
+| Key                | Action                                                  |
+|--------------------|---------------------------------------------------------|
+| ← / →              | Move the selection cursor one cell left / right.        |
+| ↑ / ↓              | Move the selection cursor to the previous / next track. |
+| Enter, Space       | Place the current dyad at the selected cell.            |
+| Backspace, Delete  | Clear the selected cell.                                |
 
-- **Meter** changes how many beats make up one bar (`3/4`, `4/4`, `6/8`).
-- **Subdivision** changes how many cells fit into one beat (`1/4` → 1 cell,
-  `1/8` → 2 cells, `1/16` → 4 cells).
-- **Bars** changes the total length of the timeline.
+Outside the timeline (but not inside another input):
 
-Changing any of these rebuilds the grid, keeping the dyads you already
-placed at their original cell index when possible.
+| Key       | Action                       |
+|-----------|------------------------------|
+| Space, P  | Toggle Play / Pause.         |
+| Escape    | Close the welcome modal.     |
 
-## Step 3 — play it
+## Three tracks, four instruments
 
-Press **Play**. The app:
+The lower panel has three tracks. Each track has an instrument selector
+and a mute toggle in its header:
 
-1. Resumes the audio context (required by browsers the first time).
-2. Walks the timeline one cell at a time at `60000 / BPM / cellsPerBeat`
-   milliseconds per cell.
-3. For each cell with a dyad, plays both notes through a Web Audio synth and
-   glows the matching node on the torus.
-4. Draws a line on the torus through every placed dyad in order, so the full
-   progression traces out as a path on the surface.
+| Default track | Default instrument |
+|---------------|--------------------|
+| Lead          | Triangle lead      |
+| Bass          | Sine bass          |
+| Pad           | Saw pad            |
 
-**Stop** halts playback and returns the playhead to the start. **Play**
-toggles to **Pause** while running.
+Available instruments: **Triangle**, **Sine**, **Sawtooth**, **Square**. All
+are raw Web Audio oscillators with a short attack/release envelope; the
+point is tonal distinction, not fidelity. Mute a track to skip it during
+playback without losing its chord data.
 
-## Step 4 — read the torus
+Tracks play in parallel — one step of the scheduler triggers every
+un-muted track's dyad at that cell.
 
-Nodes are colored by interval class (see the legend in the upper-right of
-the 3D view):
+## Workflow
 
-- *Tritone, minor 6th, major 7th* — dissonant, saturated colors.
-- *Perfect 4th / 5th* — teal / blue, the classic consonant dyads.
-- *Major / minor 3rd and 6th* — warm yellow / orange / pink.
-- *Unison* — neutral grey, on the main diagonal.
+1. **Pick a dyad.** Either:
+   - Set **Voice A / Voice B / Octave** in the transport, or
+   - **Left-click** a node on the torus.
+2. **Select a cell.** Click a cell in the timeline, or use the arrow keys
+   to move the cursor.
+3. **Place.** Click the cell again, press **Enter**, or **Space** while the
+   timeline has focus.
+4. **Configure transport.** BPM, meter (3/4 · 4/4 · 6/8), subdivision
+   (1/4 · 1/8 · 1/16), bars (1–16).
+5. **Play.** Press **Play** (or Space outside the timeline). Each step:
+   - every un-muted track's dyad plays on its instrument,
+   - the torus node for the last dyad this step glows,
+   - the playhead outlines the active cell.
+6. **Read the torus.** The yellow polyline traces the full progression in
+   order (the first non-null dyad of each step is what the path connects).
 
-Edges connect dyads that differ by a single semitone in exactly one voice.
-That is the standard voice-leading adjacency on the torus. A short
-progression that sounds "smooth" will draw short edges; one that sounds
-"jumpy" will cross the surface with long chords.
+## Theme
 
-The yellow polyline overlays the full progression so you can see the path
-at a glance even when no chord is currently playing.
+The **Light theme / Dark theme** button at the right of the transport row
+toggles the interface. The preference is remembered per browser. The 3D
+view re-tints to match.
 
-## Keyboard and mouse tips
+## What is not available yet
 
-- **Drag** the 3D view to orbit. **Scroll** to zoom. **Right-drag** to pan.
-- **Shift + click** a timeline cell to overwrite it without toggling.
-- Changing the current dyad while playback is running does not retroactively
-  rewrite scheduled cells — only cells you click while the new dyad is
-  selected take the new value.
-
-## What is not yet available
-
-Most of the navbar is deliberately disabled. Those are the next spaces to
-build: see [TODO.md](TODO.md) for the priority order.
+Most of the navbar entries are disabled placeholders (Tonnetz, Möbius dyad
+orbifold, triad orbifold, voice-leading lattice, Schoenberg regions). See
+[TODO.md](TODO.md) for the priority order of what we build next.

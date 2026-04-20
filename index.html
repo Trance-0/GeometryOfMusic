@@ -10,20 +10,45 @@
     />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
-  <body>
+  <body data-theme="dark">
     <header id="topbar">
       <div class="brand">
         <span class="brand-mark">GoM</span>
         <span class="brand-title">Geometry of Music</span>
       </div>
       <nav id="space-nav" aria-label="Musical spaces"></nav>
+      <div class="topbar-actions">
+        <button id="help-btn" type="button" title="Show tour">?</button>
+      </div>
     </header>
 
     <main id="app">
       <section id="lattice-view" aria-label="3D chord lattice">
         <div id="lattice-canvas"></div>
+        <div class="lattice-overlay lattice-overlay-tl">
+          <button
+            id="reset-view-btn"
+            type="button"
+            class="icon-btn"
+            title="Reset camera to starting position"
+            aria-label="Reset camera to starting position"
+          >
+            Reset view
+          </button>
+        </div>
         <div class="legend" id="lattice-legend"></div>
       </section>
+
+      <div
+        id="resize-handle"
+        class="resize-handle"
+        role="separator"
+        aria-orientation="horizontal"
+        aria-label="Resize the 3D view versus the timeline"
+        title="Drag to resize · double-click to reset"
+      >
+        <span class="resize-grip"></span>
+      </div>
 
       <section id="transport" aria-label="Playback controls">
         <div class="transport-row">
@@ -54,6 +79,8 @@
             Bars
             <input id="bars" type="number" min="1" max="16" value="4" />
           </label>
+          <span class="transport-spacer"></span>
+          <button id="theme-btn" type="button" class="theme-btn">Light theme</button>
         </div>
         <div class="transport-row">
           <fieldset class="chord-picker">
@@ -73,20 +100,21 @@
             <span id="chord-name" class="chord-name" aria-live="polite"></span>
           </fieldset>
           <p class="hint">
-            Click a timeline cell to place the current dyad. Click again to
-            clear. Hold Shift+click to extend the previous dyad across cells.
+            Left-click a torus node to pick it · arrow keys move the timeline
+            cursor · <kbd>Enter</kbd> places the current dyad ·
+            <kbd>Backspace</kbd> clears.
           </p>
         </div>
       </section>
 
       <section id="timeline-view" aria-label="Timeline">
-        <div id="timeline" role="grid" aria-label="Beat grid"></div>
+        <div id="timeline" aria-label="Beat grid"></div>
       </section>
     </main>
 
     <footer id="bottombar">
       <span
-        >Prototype 0.0.1 &middot; Based on Hook, Tymoczko, and Schoenberg.
+        >Prototype 0.0.2 &middot; Based on Hook, Tymoczko, and Schoenberg.
         <a
           href="https://github.com/Trance-0/GeometryOfMusic"
           target="_blank"
@@ -95,6 +123,71 @@
         >.</span
       >
     </footer>
+
+    <div
+      id="tour-modal"
+      class="modal hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="tour-title"
+      aria-hidden="true"
+    >
+      <div class="modal-backdrop"></div>
+      <div class="modal-panel" role="document">
+        <h2 id="tour-title">Welcome to Geometry of Music</h2>
+        <p class="tour-lead">
+          A sandbox for walking through chord space with your hands. The first
+          view embeds ordered two-note chords on a torus.
+        </p>
+        <div class="tour-grid">
+          <section>
+            <h3>3D torus</h3>
+            <ul>
+              <li><b>Left click</b> a node to pick that dyad.</li>
+              <li><b>Middle drag</b> to rotate.</li>
+              <li><b>Right drag</b> to pan.</li>
+              <li><b>Scroll</b> to zoom.</li>
+              <li>
+                <b>Reset view</b> (top-left) returns the camera to start.
+              </li>
+            </ul>
+          </section>
+          <section>
+            <h3>Timeline</h3>
+            <ul>
+              <li>Three tracks, each with its own instrument.</li>
+              <li><b>Click a cell</b> to place the current dyad.</li>
+              <li><b>Click again</b> to clear it.</li>
+              <li><b>Arrows</b> move the cursor, <b>Enter</b> places.</li>
+              <li><b>Backspace</b> clears the selected cell.</li>
+              <li>Change instrument or mute from each track's header.</li>
+            </ul>
+          </section>
+          <section>
+            <h3>Transport &amp; theme</h3>
+            <ul>
+              <li><b>Play / Stop</b>, BPM, meter, subdivision, bar count.</li>
+              <li>
+                <b>Drag the bar</b> between the 3D view and the timeline to
+                resize them. Double-click to reset.
+              </li>
+              <li>
+                Toggle between <b>dark / light</b> theme at the right of the
+                transport row.
+              </li>
+              <li>Click the <b>?</b> button in the top bar to see this again.</li>
+            </ul>
+          </section>
+        </div>
+        <div class="tour-foot">
+          <label class="tour-checkbox">
+            <input id="tour-dont-show" type="checkbox" checked />
+            Don't show this on next start
+          </label>
+          <button id="tour-close" type="button" class="primary">Got it</button>
+        </div>
+      </div>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

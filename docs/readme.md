@@ -16,29 +16,54 @@ two-note chords embedded on a torus.
 There is no backend. The entire app is a static Vite + TypeScript bundle that
 runs in the browser.
 
-Three views compose the app:
+Three panels compose the app, separated by a **drag handle** that lets you
+resize the upper 3D view against the lower timeline. The fraction is
+persisted per browser as `gom.upper.fraction` in `localStorage`.
 
 1. **Lattice view** (upper 3D panel). A `TorusView` built with three.js. 144
    ordered dyad nodes are placed on the surface of a torus at angle
    `(2π·a/12, 2π·b/12)` (voice A along the major circle, voice B along the
    minor circle). Nodes are colored by interval class. Adjacent nodes — those
    that differ by a semitone in exactly one voice — are connected with edges,
-   giving the 12×12 toroidal grid graph.
-2. **Transport** (middle). Play / Stop, BPM, meter (3/4, 4/4, 6/8), subdivision
-   (1/4, 1/8, 1/16), bar count, and a current-dyad picker (voice A, voice B,
-   octave).
-3. **Timeline view** (lower panel). A grid of cells, one per subdivision.
-   Clicking a cell writes the current dyad into that beat; clicking a filled
-   cell clears it. A playhead outlines the active cell during playback.
+   giving the 12×12 toroidal grid graph. Both the wireframe shell and the
+   nodes live in the XY plane so their axes agree (an earlier round rotated
+   the shell by π/2 around X, which desynchronized them).
+   - **Left click** raycasts onto the nearest node and sets the current
+     dyad; `OrbitControls.mouseButtons.LEFT` is set to `-1` so the orbit
+     itself never consumes the click.
+   - **Middle drag** rotates (remapped from the default left-drag).
+   - **Right drag** pans.
+   - **Scroll** zooms.
+   - A **Reset view** overlay button in the upper-left snaps the camera
+     back to the initial framing.
+2. **Transport** (middle). Play / Stop, BPM, meter (3/4, 4/4, 6/8),
+   subdivision (1/4, 1/8, 1/16), bar count, a current-dyad picker
+   (voice A, voice B, octave), and a **dark / light theme toggle** on the
+   right side of the first row.
+3. **Timeline view** (lower panel). Three tracks × (bars × cells-per-bar)
+   cells. Each track has its own instrument selector and mute toggle; the
+   grid supports click-to-place / click-to-clear with the mouse, and full
+   keyboard navigation (arrows move a selection cursor, Enter places the
+   current dyad, Backspace clears it).
 
-Audio is generated with the Web Audio API. `DyadSynth` maintains a single
-`AudioContext`, plays each scheduled dyad as two triangle-wave oscillators
-with a short attack/release envelope, and stops cleanly when the user stops
-transport.
+Audio is generated with the Web Audio API. `SynthEngine` maintains one
+`AudioContext`, three `GainNode` track buses, and four oscillator
+waveforms (`triangle`, `sine`, `sawtooth`, `square`). Each scheduled step
+triggers every un-muted track's dyad on its track bus; envelopes are
+short attack / short release so successive chords don't click.
 
 The navbar lists the musical spaces we want to eventually cover. Only
-**Torus (dyads)** is enabled in this round; the rest are disabled placeholders
-that describe the structure they will host.
+**Torus (dyads)** is enabled in this round; the rest are disabled
+placeholders that describe the structure they will host.
+
+## First-visit tour
+
+`installTour()` shows a modal on first load (keyed as
+`gom.tour.seen.v1`). It explains mouse controls, keyboard shortcuts, the
+three tracks, the resize handle, and the theme toggle. The **?** button
+in the top-right reopens it. The "Don't show this on next start"
+checkbox is enabled by default; unchecking it makes the modal reappear
+next time.
 
 ## Runtime shape
 
@@ -53,13 +78,19 @@ that describe the structure they will host.
 ```text
 src/
 ├── main.ts             ← wiring / app state / transport scheduler
-├── style.css           ← dark UI, three-panel grid layout
+├── style.css           ← dark+light themes, three-panel grid + modal
 ├── chord.ts            ← pitch classes, dyads, interval-class colors,
 │                         MIDI ↔ frequency helpers
 ├── navbar.ts           ← navbar registry of musical spaces
-├── torus-view.ts       ← three.js scene for the torus + dyad lattice
-├── timeline-view.ts    ← DOM grid for placing dyads on beats
-└── audio.ts            ← DyadSynth (Web Audio, 2 voices, triangle + envelope)
+├── torus-view.ts       ← three.js scene: torus shell, 144 nodes,
+│                         voice-leading edges, progression polyline,
+│                         left-click raycaster, reset-view camera snap
+├── timeline-view.ts    ← DOM grid for 3 tracks with keyboard nav
+├── audio.ts            ← SynthEngine (Web Audio, per-track buses,
+│                         4 oscillator waveforms, envelope)
+├── theme.ts            ← dark / light theme toggle + localStorage
+├── tour.ts             ← first-visit welcome modal + ? button re-open
+└── resizer.ts          ← drag handle that splits upper vs lower panel
 ```
 
 Root files:

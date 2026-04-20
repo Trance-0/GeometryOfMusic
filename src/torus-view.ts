@@ -3,7 +3,6 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import {
   INTERVAL_COLORS,
   INTERVAL_NAMES,
-  PITCH_NAMES,
   dyadInterval,
   dyadKey,
   type Dyad,
@@ -12,8 +11,10 @@ import {
 
 const MAJOR_RADIUS = 3.2;
 const MINOR_RADIUS = 1.3;
-const NODE_RADIUS = 0.09;
+const NODE_RADIUS = 0.1;
 const N = 12;
+const CLICK_MOVE_TOLERANCE_PX = 4;
+const CLICK_MAX_DURATION_MS = 500;
 
 function toroidalPosition(a: PitchClass, b: PitchClass): THREE.Vector3 {
   const theta = (a / N) * Math.PI * 2;
@@ -30,43 +31,71 @@ interface NodeEntry {
   readonly dyad: Dyad;
 }
 
+export interface TorusViewCallbacks {
+  onNodeSelect?: (dyad: Dyad) => void;
+}
+
 export class TorusView {
   private readonly container: HTMLElement;
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
   private controls: OrbitControls;
+  private raycaster = new THREE.Raycaster();
+  private pointer = new THREE.Vector2();
   private nodes = new Map<string, NodeEntry>();
+  private nodeMeshes: THREE.Mesh[] = [];
   private highlightedKey: string | null = null;
   private pathLine: THREE.Line | null = null;
   private resizeObserver: ResizeObserver;
   private animationId: number | null = null;
+  private callbacks: TorusViewCallbacks;
+  private clickStart: { x: number; y: number; time: number } | null = null;
+  private readonly initialCameraPos = new THREE.Vector3(5.5, -8, 6);
+  private readonly initialTarget = new THREE.Vector3(0, 0, 0);
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, callbacks: TorusViewCallbacks = {}) {
     this.container = container;
+    this.callbacks = callbacks;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color("#0b0d12");
-    this.scene.fog = new THREE.Fog("#0b0d12", 10, 22);
 
     const { clientWidth: w, clientHeight: h } = container;
-    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-    this.camera.position.set(6.5, 5.5, 7.5);
+    const aspect = w === 0 || h === 0 ? 1 : w / h;
+    this.camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 100);
+    this.camera.up.set(0, 0, 1);
+    this.camera.position.copy(this.initialCameraPos);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setSize(w, h, false);
+    this.renderer.setSize(Math.max(w, 1), Math.max(h, 1), false);
     container.appendChild(this.renderer.domElement);
+
+    this.applySceneTheme();
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
     this.controls.minDistance = 5;
-    this.controls.maxDistance = 18;
+    this.controls.maxDistance = 22;
+    // Left = select (handled by our raycaster; OrbitControls ignores it).
+    // Middle = rotate. Right = pan. Scroll = zoom (default).
+    const mb = this.controls.mouseButtons as unknown as {
+      LEFT: number;
+      MIDDLE: number;
+      RIGHT: number;
+    };
+    mb.LEFT = -1;
+    mb.MIDDLE = THREE.MOUSE.ROTATE;
+    mb.RIGHT = THREE.MOUSE.PAN;
+    // Touch: one-finger rotate, two-finger pan + zoom.
+    this.controls.touches.ONE = THREE.TOUCH.ROTATE;
+    this.controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
 
     this.buildLights();
     this.buildTorusShell();
     this.buildNodes();
     this.buildVoiceLeadingEdges();
+    this.installPointerHandlers();
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(container);
@@ -76,9 +105,9 @@ export class TorusView {
 
   private buildLights(): void {
     const ambient = new THREE.AmbientLight(0xffffff, 0.55);
-    const key = new THREE.DirectionalLight(0xffffff, 0.6);
+    const key = new THREE.DirectionalLight(0xffffff, 0.7);
     key.position.set(5, 8, 6);
-    const rim = new THREE.DirectionalLight(0x88aaff, 0.25);
+    const rim = new THREE.DirectionalLight(0x88aaff, 0.3);
     rim.position.set(-6, -3, -4);
     this.scene.add(ambient, key, rim);
   }
@@ -90,30 +119,30 @@ export class TorusView {
       48,
       96,
     );
+    // Default TorusGeometry is in the XY plane, which matches toroidalPosition.
+    // We intentionally do NOT rotate the mesh — previous rotation was the
+    // root cause of the wireframe / node-cloud axis mismatch.
     const mat = new THREE.MeshBasicMaterial({
       color: 0x1a2029,
       wireframe: true,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.4,
     });
     const torus = new THREE.Mesh(geom, mat);
-    torus.rotation.x = Math.PI / 2;
+    torus.userData.isShell = true;
     this.scene.add(torus);
   }
 
   private buildNodes(): void {
-    const sphereGeom = new THREE.SphereGeometry(NODE_RADIUS, 12, 12);
+    const sphereGeom = new THREE.SphereGeometry(NODE_RADIUS, 14, 14);
     for (let a = 0; a < N; a++) {
       for (let b = 0; b < N; b++) {
-        const dyad: Dyad = {
-          a: a as PitchClass,
-          b: b as PitchClass,
-        };
+        const dyad: Dyad = { a: a as PitchClass, b: b as PitchClass };
         const ic = dyadInterval(dyad);
         const color = new THREE.Color(INTERVAL_COLORS[ic]);
         const mat = new THREE.MeshStandardMaterial({
           color,
-          emissive: color.clone().multiplyScalar(0.12),
+          emissive: color.clone().multiplyScalar(0.14),
           roughness: 0.55,
           metalness: 0.1,
         });
@@ -126,13 +155,11 @@ export class TorusView {
           baseColor: color.clone(),
           dyad,
         });
+        this.nodeMeshes.push(mesh);
       }
     }
   }
 
-  // Connect dyads that differ by a semitone in exactly one voice. That is the
-  // standard voice-leading adjacency for ordered pairs — each node has 4
-  // neighbours, giving a 12×12 toroidal grid graph.
   private buildVoiceLeadingEdges(): void {
     const positions: number[] = [];
     for (let a = 0; a < N; a++) {
@@ -152,12 +179,56 @@ export class TorusView {
       new THREE.Float32BufferAttribute(positions, 3),
     );
     const mat = new THREE.LineBasicMaterial({
-      color: 0x2f3a48,
+      color: 0x39455a,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.5,
     });
     const lines = new THREE.LineSegments(geom, mat);
     this.scene.add(lines);
+  }
+
+  private installPointerHandlers(): void {
+    const el = this.renderer.domElement;
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
+      this.clickStart = {
+        x: e.clientX,
+        y: e.clientY,
+        time: performance.now(),
+      };
+    });
+    el.addEventListener("pointerup", (e) => {
+      if (e.button !== 0 || !this.clickStart) {
+        this.clickStart = null;
+        return;
+      }
+      const dx = e.clientX - this.clickStart.x;
+      const dy = e.clientY - this.clickStart.y;
+      const dt = performance.now() - this.clickStart.time;
+      this.clickStart = null;
+      if (Math.hypot(dx, dy) > CLICK_MOVE_TOLERANCE_PX) return;
+      if (dt > CLICK_MAX_DURATION_MS) return;
+      this.handlePick(e.clientX, e.clientY);
+    });
+    // Block the browser context menu so right-drag pan is unobstructed.
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+  }
+
+  private handlePick(clientX: number, clientY: number): void {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hits = this.raycaster.intersectObjects(this.nodeMeshes, false);
+    if (hits.length === 0) return;
+    const hit = hits[0];
+    if (!hit) return;
+    const key = hit.object.userData.dyadKey as string | undefined;
+    if (!key) return;
+    const entry = this.nodes.get(key);
+    if (entry && this.callbacks.onNodeSelect) {
+      this.callbacks.onNodeSelect(entry.dyad);
+    }
   }
 
   highlightDyad(dyad: Dyad | null): void {
@@ -165,7 +236,7 @@ export class TorusView {
       const prev = this.nodes.get(this.highlightedKey);
       if (prev) {
         const mat = prev.mesh.material as THREE.MeshStandardMaterial;
-        mat.emissive.copy(prev.baseColor).multiplyScalar(0.12);
+        mat.emissive.copy(prev.baseColor).multiplyScalar(0.14);
         prev.mesh.scale.setScalar(1);
       }
     }
@@ -180,8 +251,8 @@ export class TorusView {
       return;
     }
     const mat = entry.mesh.material as THREE.MeshStandardMaterial;
-    mat.emissive.copy(entry.baseColor).multiplyScalar(1.2);
-    entry.mesh.scale.setScalar(1.6);
+    mat.emissive.copy(entry.baseColor).multiplyScalar(1.4);
+    entry.mesh.scale.setScalar(1.7);
     this.highlightedKey = key;
   }
 
@@ -199,7 +270,6 @@ export class TorusView {
       color: 0xffd166,
       transparent: true,
       opacity: 0.85,
-      linewidth: 2,
     });
     this.pathLine = new THREE.Line(geom, mat);
     this.scene.add(this.pathLine);
@@ -207,9 +277,35 @@ export class TorusView {
 
   legendEntries(): { label: string; color: string }[] {
     return INTERVAL_NAMES.map((name, i) => ({
-      label: `${name} (${PITCH_NAMES[i] ?? i})`,
+      label: name,
       color: INTERVAL_COLORS[i] ?? "#888",
     }));
+  }
+
+  /**
+   * Pull the current theme from the document body and re-tint the scene
+   * background / wireframe so switching theme in the DOM updates the canvas.
+   */
+  /**
+   * Snap the camera and orbit target back to the starting framing. Called
+   * by the reset-view overlay button.
+   */
+  resetCamera(): void {
+    this.camera.position.copy(this.initialCameraPos);
+    this.camera.up.set(0, 0, 1);
+    this.controls.target.copy(this.initialTarget);
+    this.controls.update();
+  }
+
+  applySceneTheme(): void {
+    const light = document.body.dataset.theme === "light";
+    if (light) {
+      this.scene.background = new THREE.Color("#f4f6fa");
+      this.scene.fog = new THREE.Fog("#f4f6fa", 12, 26);
+    } else {
+      this.scene.background = new THREE.Color("#0b0d12");
+      this.scene.fog = new THREE.Fog("#0b0d12", 10, 24);
+    }
   }
 
   private resize(): void {
@@ -221,7 +317,7 @@ export class TorusView {
   }
 
   private start(): void {
-    const loop = () => {
+    const loop = (): void => {
       this.animationId = requestAnimationFrame(loop);
       this.controls.update();
       this.renderer.render(this.scene, this.camera);
@@ -242,6 +338,8 @@ export class TorusView {
       this.pathLine.geometry.dispose();
       (this.pathLine.material as THREE.Material).dispose();
     }
-    this.container.removeChild(this.renderer.domElement);
+    if (this.renderer.domElement.parentNode === this.container) {
+      this.container.removeChild(this.renderer.domElement);
+    }
   }
 }

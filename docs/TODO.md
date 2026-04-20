@@ -7,14 +7,20 @@ inside each group is rough priority.
 ## Near term — finish what the prototype implies
 
 - [ ] Persist timeline state to `localStorage` so reloading keeps the
-      current progression.
+      current progression. (Theme and panel-split fractions are already
+      persisted; chord data is not.)
 - [ ] Export progression as MIDI (or at least as a JSON scratch format).
 - [ ] Import a MIDI file and project its dyads onto the torus.
-- [ ] Pick a chord directly from the torus (click a node → sets the current
-      dyad).
+- [x] Pick a chord directly from the torus (left-click a node → sets the
+      current dyad). — *round 2*
 - [ ] Undo / redo for timeline edits.
 - [ ] Transpose button (± semitone) that rotates the torus path, not just
       the underlying notes.
+- [ ] Per-track volume sliders (currently only mute / unmute).
+- [ ] More than three tracks; add / remove tracks from the UI.
+- [ ] Swing / groove templates rather than rigid grid playback.
+- [ ] Extra instrument voices — at least one inharmonic (FM bell /
+      plucked-string Karplus-Strong) on top of the four basic waveforms.
 
 ## Hook — *Exploring Musical Spaces*
 

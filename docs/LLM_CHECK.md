@@ -59,6 +59,36 @@ for the canonical checklist. The items that need extra care in this repo:
 
 Append, do not rewrite.
 
+- 2026-04-20: **Round 2** — addressed visible regressions and expanded the
+  interaction surface.
+  - Fixed the torus / node axis mismatch: the shell mesh no longer rotates
+    by π/2 around X; both the wireframe and `toroidalPosition` now live in
+    the XY plane, so the nodes sit exactly on the wireframe.
+  - Remapped OrbitControls: left click is consumed by a raycaster that
+    picks a dyad node and sets the current dyad; middle-drag rotates;
+    right-drag pans; scroll zooms. Touch mapping kept (one-finger rotate,
+    two-finger pan + zoom).
+  - Added a **Reset view** overlay button in the upper-left of the 3D
+    view that snaps camera + orbit target back to the starting framing.
+  - Timeline expanded to **three tracks** (Lead / Bass / Pad with
+    Triangle / Sine / Saw as defaults). Each track has an instrument
+    selector (4 waveforms) and a mute toggle. Added keyboard navigation:
+    arrow keys move a selection cursor, Enter places the current dyad,
+    Backspace clears.
+  - Added a **drag-to-resize** handle between the 3D view and the
+    transport; fraction persisted in `gom.upper.fraction`. Double-click
+    the handle to reset.
+  - Added a **theme toggle** (dark / light) on the right of the
+    transport's first row; preference persisted in `gom.theme`. The 3D
+    scene re-tints via `TorusView.applySceneTheme()`.
+  - Added a **first-run welcome modal** with mouse / keyboard /
+    track / theme tips; "Don't show again" checkbox persists via
+    `gom.tour.seen.v1`. The **?** button in the top bar reopens it.
+  - Audio: `DyadSynth` replaced with `SynthEngine` — a multi-track mixer
+    with a per-track gain bus and four waveform instruments. Dropped the
+    old single-voice API.
+  - `TODO.md` updated: ticked off the "pick from torus" item; added
+    track-count, per-track volume, swing, and FM/Karplus-Strong items.
 - 2026-04-20: Initialized repo as a Vite + TypeScript prototype. Added
   `AGENTS.md` as a git submodule per owner request. Wrote the first space
   (**Torus / ordered dyads**): `TorusView` (three.js torus with 144 nodes +
